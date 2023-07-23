@@ -1,0 +1,227 @@
+% Kale Ewasiuk (kalekje@gmail.com)
+% +REVDATE+
+% Copyright (C) 2021-2023 Kale Ewasiuk
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in
+% all copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+% ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+% TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+% PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT
+% SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+% ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+% ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+% OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+\documentclass[11pt,parskip=half]{scrartcl}
+\setlength{\parindent}{0ex}
+\newcommand{\llcmd}[1]{\leavevmode\llap{\texttt{\detokenize{#1}}}}
+\newcommand{\cmd}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\qcmd}[1]{``\cmd{#1}''}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{showexpl}
+\lstset{explpreset={justification=\raggedright,pos=r,wide=true}}
+\setlength\ResultBoxRule{0mm}
+\lstset{
+	language=[LaTeX]TeX,
+	basicstyle=\ttfamily\small,
+	commentstyle=\ttfamily\small\color{gray},
+	frame=none,
+	numbers=left,
+	numberstyle=\ttfamily\small\color{gray},
+	prebreak=\raisebox{0ex}[0ex][0ex]{\color{gray}\ensuremath{\hookleftarrow}},
+	extendedchars=true,
+	breaklines=true,
+	tabsize=4,
+}
+\addtokomafont{title}{\raggedright}
+\addtokomafont{author}{\raggedright}
+\addtokomafont{date}{\raggedright}
+\author{Kale Ewasiuk (\url{kalekje@gmail.com})}
+\usepackage[yyyymmdd]{datetime}\renewcommand{\dateseparator}{--}
+\date{\today}
+
+
+\RequirePackage{penlightplus}
+
+\title{penlightplus}
+\subtitle{Additions to the Penlight Lua Libraries}
+
+\begin{document}
+%
+
+\maketitle
+
+This package first loads the \cmd{[import]penlight} package.\\
+The \texttt{pl} option may be passed to this package to create an alias for \cmd{penlight}.\\
+\texttt{globals} option may be used to make several of the functions global (as discussed below).
+
+\subsection*{texlua usage}
+If you want to use penlightplus.lua  with the \texttt{texlua} interpreter
+(no document is made, but useful for testing your Lua code),
+you can access it by setting \cmd{__SKIP_TEX__ = true} before loading. For example:
+ \begin{verbatim}
+package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlightplus/?.lua'
+package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlight/?.lua'
+penlight = require'penlight'
+
+__SKIP_TEX__ = true  --only required if you want to use
+                     --penlightplus without a LaTeX run
+__PL_GLOBALS__ = true -- optional, include global definitions
+require'penlightplus'
+\end{verbatim}
+
+
+
+
+
+
+\subsection*{}
+
+The following global variables are defined:
+
+\llcmd{__SKIP_TEX__} If using the \cmd{penlightplus} package with \cmd{texlua} (good for troubleshooting), set this global before loading \cmd{penlight}\\
+The gloals flags below are taken care of in the package options:\\
+\llcmd{__PL_}\cmd{GLOBALS__} If using package with \cmd{texlua} and you don't want to set some globals (described in next sections), set this global before to \cmd{true} loading \cmd{penlight}\\
+\cmd{__PL_NO_HYPERREF__} a flag used to change the behaviour of a function, depending on if you don't use the hyperref package\\
+
+\subsubsection*{penlight additions}
+
+Some functionality is added to penlight/lua.
+
+\llcmd{pl.hasval(x)} Python-like boolean testing\\
+\llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
+\llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
+\llcmd{string.}\cmd{totable(s)} string a table of characters\\
+\llcmd{string.}\cmd{delspace(s)} clear spaces from string\\
+\llcmd{pl.}\cmd{char(n)} return letter corresponding to 1=a, 2=b, etc.\\
+\llcmd{pl.}\cmd{Char(n)} return letter corresponding to 1=A, 2=B, etc.\\
+
+\llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
+
+
+\subsubsection*{A \cmd{pl.tex.} module is added}
+\llcmd{add_bkt}\cmd{_cnt(n), }\cmd{close_bkt_cnt(n), reset_bkt_cnt} functions to keep track of adding curly brackets as strings. \cmd{add} will return \cmd{n} (default 1) \{'s and increment a counter. \cmd{close} will return \cmd{n} \}'s (default will close all brackets) and decrement.\\
+\llcmd{_NumBkts} internal integer for tracking the number of brackets\\
+\llcmd{opencmd(cs)} prints \cmd{\cs}\{ and adds to the bracket counters.\\
+\\
+\llcmd{_xNoValue,}\cmd{_xTrue,_xFalse}: \cmd{xparse} equivalents for commands\\
+\\
+\llcmd{prt(x),prtn(x)} print without or with a newline at end. Tries to help with special characters or numbers printing.\\
+\llcmd{prtl(l),prtt(t)} print a literal string, or table\\
+\llcmd{wrt(x), wrtn(x)} write to log\\
+\llcmd{help_wrt}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find.\\
+\llcmd{prt_array2d(tt)} pretty print a 2d array\\
+\\
+\llcmd{pkgwarn}\cmd{(pkg, msg1, msg2)} throw a package warning\\
+\llcmd{pkgerror}\cmd{(pkg, msg1, msg2, stop)} throw a package error. If stop is true, immediately ceases compile.\\
+\\
+\llcmd{defcmd}\cmd{(cs, val)} like \cmd{\gdef}\\
+\llcmd{newcmd}\cmd{(cs, val)} like \cmd{\newcommand}\\
+\llcmd{renewcmd}\cmd{(cs, val)} like \cmd{\renewcommand}\\
+\llcmd{prvcmd}\cmd{(cs, val)} like \cmd{\providecommand}\\
+\llcmd{deccmd}\cmd{(cs, dft, overwrite)} declare a command. If \cmd{dft} (default) is \cmd{nil}, \cmd{cs} is set
+to a package warning saying \cmd{'cs' was declared and used in document, but never set}. If \cmd{overwrite}
+is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, it will throw error like \cmd{newcmd}.\\
+\llcmd{get_ref_info(l)}accesses the \cmd{\r@label} and returns a table\\
+
+
+
+\subsubsection*{global extras}
+If \cmd{extrasglobals} is used and NOT \cmd{extras}, many additional globals are set for shortcuts\\
+All \cmd{pl.tex} modules are made global.\\
+\cmd{pl.hasval}, \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals with the function name.\\
+
+
+
+\subsection*{Macro helpers}
+\cmd{\MakeluastringCommands[def]{spec}} will let \cmd{\plluastring(A|B|C..)} be \cmd{\luastring(N|O|T|F)}
+based on the letters that \cmd{spec} is set to (or \cmd{def} if nothing is provided)
+This is useful if you want to write a command with flexibility on argument expansion.
+The user can specify \cmd{n}, \cmd{o}, \cmd{t}, and \cmd{f} (case insensitve) if they want
+no, once, twice, or full expansion.
+
+%   BELOW IS FOR TROUBLESHOOTING ABOVE
+%\def\NOTexp{\ONEexp}
+%\def\ONEexp{\TWOexp}
+%\def\TWOexp{\TREexp}
+%\def\TREexp{Fully expanded}
+%
+%\NewDocumentCommand{\luastringExpTest}{m m}{
+%  \MakeluastringCommands{#1}
+%  \luadirect{texio.write_nl('VVVVVVVVVVVVVVVVVVVVVVVVVVVVV')}
+%  \luadirect{texio.write_nl(\plluastringA{#2}..' | Not')}
+%  \luadirect{texio.write_nl(\plluastringB{#2}..' | Once')}
+%  \luadirect{texio.write_nl(\plluastringC{#2}..' | Twice')}
+%  \luadirect{texio.write_nl(\plluastringD{#2}..' | Full')}
+%  \luadirect{texio.write_nl('VVVVVVVVVVVVVVVVVVVVVVVVVVVVV')}
+%}
+%
+%\luastringExpTest{ n o t f }{\NOTexp}
+
+
+
+
+\subsection*{Split stuff}
+Splitting text (or a cmd) into oxford comma format via:
+\cmd{\splitToComma[expansion level]{text}{text to split on}}:
+
+\begin{LTXexample}
+
+-\splitToComma{  j doe  }{\and}-\\
+-\splitToComma{  j doe \and s else  }{\and}-\\
+-\splitToComma{  j doe \and s else \and a per }{\and}-\\
+-\splitToComma{  j doe \and s else \and a per \and f guy}{\and}-
+
+\def\authors{j doe \and s else \and a per \and f guy}
+\splitToComma[o]{\authors}{\and}
+\end{LTXexample}
+
+The expansion level is up to two characters, \cmd{n|o|t|f}, to control teh expasion of each argument.
+
+\begin{LTXexample}
+spliToItems:
+\begin{itemize}
+  \splitToItems{kale\and john}{\and}
+  \splitToItems{kale -john -someone else}{-}
+\end{itemize}
+\end{LTXexample}
+
+
+
+
+
+
+%  \tblfrkv{tbl_def}{kale=cool,paul=gay,craig=fun}
+%  \tblfrkv{tbl}{kale,paul=gay} %[naked_as_value=true]
+%
+%  \tblget{tbl}{kale}%
+%  \tblget{tbl}{paul}%
+%  \tblget{tbl}{craig}%
+%
+%  \tblupd{tbl_def}{tbl}%
+%
+%  \tblfrkvII{tbl}{kale=cool,paul=gay,craig=fun}{kale=weak,paul=sad}
+%  \tblget{tbl}{craig}%
+%  \tblget{tbl}{paul}%
+%  \tblget{tbl}{kale}%
+%
+%  \NewDocumentCommand{\THINg}{ O{} m}{%
+%    \tblfrkvII{setti}{color=red,size=small}{#1} % make settings and update based on [arg=]
+%    {\color{\tblget{setti}{color}}\tblget{setti}{size} #2}
+%  }
+%
+%  \THINg[color=blue,size=tiny]{Kale}
+  
+\end{document}

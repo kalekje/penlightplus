@@ -1,0 +1,119 @@
+% Kale Ewasiuk (kalekje@gmail.com)
+% +REVDATE+
+% Copyright (C) 2021-2023 Kale Ewasiuk
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in
+% all copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+% ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+% TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+% PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT
+% SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+% ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+% ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+% OR OTHER DEALINGS IN THE SOFTWARE.
+
+\ProvidesPackage{penlightplus}[+REVDATE+]
+
+\RequirePackage{luacode}
+\RequirePackage{luakeys}
+\RequirePackage[import]{penlight}
+
+\DeclareOption{globals}{\luadirect{__PL_GLOBALS__ = true}}
+\DeclareOption{pl}{\directlua{pl = penlight}}
+\ProcessOptions*\relax
+
+\luadirect{require'penlightplus'}
+
+
+
+
+\global\newcommand{\writePDFmetadata}{\luadirect{penlight.tex.writePDFmetadata()}}
+
+\NewDocumentCommand{\writePDFmetadatakv}{ s m }{
+\IfBooleanTF{#1}{% if *, overwrite everything
+  \luadirect{
+    __PDFmetadata__ = penlight.luakeys.parse(\luastring{#2})
+      penlight.tex.writePDFmetadata()
+  }}{
+    \luadirect{
+    __PDFmetadata__ = __PDFmetadata__ or {}
+    penlight.tablex.update(__PDFmetadata__, penlight.luakeys.parse(\luastring{#2}))
+    penlight.tex.writePDFmetadata()
+  }}
+}
+
+
+\gdef\luastringT#1{\luastring{\unexpanded\expandafter\expandafter\expandafter{#1}}}  % expand luastring twice
+\global\let\luastringF\luastring  % fully expanded luastring
+
+% allow control over expansion of arguments to a latex function
+\NewDocumentCommand{\MakeluastringCommands}{O{} m }{% #1 the desired commands #2 defaults
+  \luadirect{penlight.tex.aliasluastring(\luastring{#2},\luastring{#1})}%
+}
+
+\NewDocumentCommand{\splitToComma}{ O{nn} m m }{%
+  \MakeluastringCommands[nn]{#1}%
+  \luadirect{penlight.tex.split2comma(\plluastringA{#2},\plluastringB{#3})}%
+}
+
+\NewDocumentCommand{\splitToItems}{ O{NN} m m }{%
+  \MakeluastringCommands[nn]{#1}%
+  \luadirect{penlight.tex.split2items(\plluastringA{#2},\plluastringB{#3})}%
+}
+
+
+%
+%
+%\NewDocumentCommand{\tblnew}{m}{\luadirect{
+%  _G[\luastring{#1}] = {}
+%}}
+%
+%\NewDocumentCommand{\tblfrkv}{m m O{} }{\luadirect{
+%  _G[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.luakeys.parse(\luastring{#3}))
+%}}
+%
+%\NewDocumentCommand{\tblset}{m m m}{\luadirect{
+%  _G[\luastring{#1}][\luastring{#2}] = \luastring{#3}
+%}}
+%
+%\NewDocumentCommand{\tblget}{m m}{\luadirect{
+%  tex.sprint(tostring(_G[\luastring{#1}][\luastring{#2}]))
+%}}
+%
+%\NewDocumentCommand{\tblidx}{m m}{\luadirect{
+%  tex.sprint(tostring(_G[\luastring{#1}][#2]))
+%}}
+%
+%
+%\NewDocumentCommand{\tblupd}{ m m}{\luadirect{
+%  penlight.tablex.update(_G[\luastring{#1}], _G[\luastring{#2}])
+%}}
+%
+%\NewDocumentCommand{\tblupdkv}{ m m }{\luadirect{
+%  penlight.tablex.update(_G[\luastring{#1}], penlight.luakeys.parse(\luastring{#2}))
+%}}
+%
+%% todo need a get table function. If blank is passed, the last table referenced is used.
+%\NewDocumentCommand{\tblfrkvII}{ m m m }{\luadirect{
+%  _G[\luastring{#1}] = penlight.tablex.update(penlight.luakeys.parse(\luastring{#2}), luakeys.parse(\luastring{#3}))
+%}}
+
+
+%\NewDocumentCommand{\tbldo}{m m O{} }{\luadirect{
+%  % tex.sprint(tostring(_G[\luastring{#1}][#2]))
+%  % todo allow one to use pl tablex function here,
+%  % {tbl}{update}[arg1][arg2]
+%  penlight.tablex[\luastring[#1]](_G[\luastring{}], _G[\luastring{}])
+%}}
+
+
