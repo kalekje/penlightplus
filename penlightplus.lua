@@ -67,6 +67,10 @@ penlight.tex._xTrue = '\\BooleanTrue '
 penlight.tex._xFalse = '\\BooleanFalse '
 penlight.tex._xNoValue = '-NoValue-'
 
+penlight.tex.xTrue = '\\BooleanTrue '
+penlight.tex.xFalse = '\\BooleanFalse '
+penlight.tex.xNoValue = '-NoValue-'
+
 --Generic LuaLaTeX utilities for print commands or environments
 
 if not __PL_SKIP_TEX__ then
@@ -138,6 +142,8 @@ function penlight.tex.help_wrt(s1, s2) -- helpful printing, makes it easy to deb
     wrt2('\n^^^^^\n')
 end
 penlight.help_wrt = penlight.tex.help_wrt
+penlight.wrth = penlight.help_wrt
+penlight.tex.wrth = penlight.help_wrt
 
 function penlight.tex.prt_array2d(t)
     for _, r in ipairs(t) do

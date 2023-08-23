@@ -85,16 +85,13 @@ require'penlightplus'
 
 
 
+The following global Lua variables are defined:
 
-
-\subsection*{}
-
-The following global variables are defined:
-
-\llcmd{__SKIP_TEX__} If using the \cmd{penlightplus} package with \cmd{texlua} (good for troubleshooting), set this global before loading \cmd{penlight}\\
+\cmd{__SKIP_TEX__} If using the \cmd{penlightplus} package with \cmd{texlua} (good for troubleshooting), set this global before loading \cmd{penlight}\\
 The gloals flags below are taken care of in the package options:\\
-\llcmd{__PL_}\cmd{GLOBALS__} If using package with \cmd{texlua} and you don't want to set some globals (described in next sections), set this global before to \cmd{true} loading \cmd{penlight}\\
+\cmd{__PL_GLOBALS__} If using package with \cmd{texlua} and you don't want to set some globals (described in next sections), set this global before to \cmd{true} loading \cmd{penlight}\\
 \cmd{__PL_NO_HYPERREF__} a flag used to change the behaviour of a function, depending on if you don't use the hyperref package\\
+\cmd{__PDFmetadata__} a table used to store PDF meta-data
 
 \subsubsection*{penlight additions}
 
@@ -171,14 +168,51 @@ no, once, twice, or full expansion.
 %\luastringExpTest{ n o t f }{\NOTexp}
 
 
+\subsection*{Lua boolean expressions for LaTeX conditionals}
+
+\cmd{\ifluax{<Lua expr>}{<do if true>}[<do if false>]}
+
+\begin{LTXexample}
+\ifluax{3^3 == 27}{3*3*3 is 27}[WRONG]\\
+\ifluax{abc123 == nil}{Var is nil}[WRONG]\\
+\ifluax{not true}{tRuE}[fAlSe]\\
+\end{LTXexample}
+
+\subsection*{Creating and using Lua tables in LaTeX}
+\cmd{penlightplus} provides a Lua-table interface. Tables are stored in the
+\cmd{penlight.tbls} table.
+
+For the commands below note that:\\
+\cmd{t=table name, v=value, k=key (auto-wrapped in ""), K=key (not wrapped)}
+
+\cmd{\newtbl{t}}\\
+\cmd{\tblfrkv{t}{key-val string}[luakeys opts]}\\
+\cmd{\settbl{t}{k}{v}}\\
+\cmd{\gettbl{t}{k}}\\
+\cmd{\idxtbl{t}{K}}\\
 
 
-\subsection*{Split stuff}
+A use-case is provided below. You may want to use this interface for
+setting key-vals in commands.
+
+\begin{LTXexample}
+\tblfrkv{tkz}{x=1.5}%
+	[defaults={x=0,y=0,pg=c,nd=cd}]
+\settbl{tkz}{y}{kale}
+\gettbl{tkz}{x}\\
+\gettbl{tkz}{y}\\
+\gettbl{tkz}{nd}\\
+\gettbl{tkz}{pg}\\
+\gettbl{tkz}{z}\\
+\end{LTXexample}
+
+
+
+\subsection*{Splitting strings}
 Splitting text (or a cmd) into oxford comma format via:
 \cmd{\splitToComma[expansion level]{text}{text to split on}}:
 
 \begin{LTXexample}
-
 -\splitToComma{  j doe  }{\and}-\\
 -\splitToComma{  j doe \and s else  }{\and}-\\
 -\splitToComma{  j doe \and s else \and a per }{\and}-\\
@@ -188,13 +222,14 @@ Splitting text (or a cmd) into oxford comma format via:
 \splitToComma[o]{\authors}{\and}
 \end{LTXexample}
 
-The expansion level is up to two characters, \cmd{n|o|t|f}, to control teh expasion of each argument.
+The expansion level is up to two characters, \cmd{n|o|t|f}, to control the expansion of each argument.
 
+You can do a similar string split but to \cmd{\item} instead of commas with \cmd{\splitToItems}
 \begin{LTXexample}
-spliToItems:
 \begin{itemize}
   \splitToItems{kale\and john}{\and}
   \splitToItems{kale -john -someone else}{-}
+  \splitToItems{1,2,3,4}{,}
 \end{itemize}
 \end{LTXexample}
 

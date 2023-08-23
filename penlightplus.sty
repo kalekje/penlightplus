@@ -27,6 +27,7 @@
 \RequirePackage{luacode}
 \RequirePackage{luakeys}
 \RequirePackage[import]{penlight}
+\RequirePackage{etoolbox}
 
 \DeclareOption{globals}{\luadirect{__PL_GLOBALS__ = true}}
 \DeclareOption{pl}{\directlua{pl = penlight}}
@@ -72,42 +73,74 @@
 }
 
 
-%
-%
-%\NewDocumentCommand{\tblnew}{m}{\luadirect{
-%  _G[\luastring{#1}] = {}
-%}}
-%
-%\NewDocumentCommand{\tblfrkv}{m m O{} }{\luadirect{
-%  _G[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.luakeys.parse(\luastring{#3}))
-%}}
-%
-%\NewDocumentCommand{\tblset}{m m m}{\luadirect{
-%  _G[\luastring{#1}][\luastring{#2}] = \luastring{#3}
-%}}
-%
-%\NewDocumentCommand{\tblget}{m m}{\luadirect{
-%  tex.sprint(tostring(_G[\luastring{#1}][\luastring{#2}]))
-%}}
-%
-%\NewDocumentCommand{\tblidx}{m m}{\luadirect{
-%  tex.sprint(tostring(_G[\luastring{#1}][#2]))
-%}}
-%
-%
+
+
+
+
+
+
+%%%%
+
+\newtoggle{luaexpr}\togglefalse{luaexpr}
+
+\begin{luacode*}
+  function toggle_luaexpr(expr)
+    if expr then
+      tex.sprint('\\toggletrue{luaexpr}')
+    else
+      tex.sprint('\\togglefalse{luaexpr}')
+    end
+  end
+\end{luacode*}
+
+\NewDocumentCommand{\ifluax}{m m O{}}{%
+  \luadirect{toggle_luaexpr(#1)}%
+  \iftoggle{luaexpr}{#2}{#3}%
+  \togglefalse{luaexpr}% safety set to false
+}
+
+%   testing ifluax
+%  {-->\ifluax{1 == 2}{\LARGE TRUE}[\tiny FALSE]<--test\\
+%  -->\ifluax{abc == nil}{\LARGE TRUE}[\tiny FALSE]<--test}
+
+
+%%%
+\luadirect{penlight.tbls = {}}
+
+\NewDocumentCommand{\newtbl}{m}{\luadirect{
+  penlight.tbls[\luastring{#1}] = {}
+}}
+
+\NewDocumentCommand{\tblfrkv}{m m O{}}{\luadirect{
+  penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.luakeys.parse(\luastring{#3}))
+}}
+
+\NewDocumentCommand{\settbl}{m m m}{\luadirect{
+  penlight.tbls[\luastring{#1}][\luastring{#2}] = \luastring{#3}
+}}
+
+\NewDocumentCommand{\gettbl}{m m}{\luadirect{
+  tex.sprint(tostring(penlight.tbls[\luastring{#1}][\luastring{#2}]))
+}}
+
+\NewDocumentCommand{\idxtbl}{m m}{\luadirect{
+  tex.sprint(tostring(penlight.tbls[\luastring{#1}][#2]))
+}}
+
+
 %\NewDocumentCommand{\tblupd}{ m m}{\luadirect{
-%  penlight.tablex.update(_G[\luastring{#1}], _G[\luastring{#2}])
+%  penlight.tablex.update(penlight.tbls[\luastring{#1}], penlight.tbls[\luastring{#2}])
 %}}
 %
 %\NewDocumentCommand{\tblupdkv}{ m m }{\luadirect{
-%  penlight.tablex.update(_G[\luastring{#1}], penlight.luakeys.parse(\luastring{#2}))
+%  penlight.tablex.update(penlight.tbls[\luastring{#1}], penlight.luakeys.parse(\luastring{#2}))
 %}}
+
 %
 %% todo need a get table function. If blank is passed, the last table referenced is used.
 %\NewDocumentCommand{\tblfrkvII}{ m m m }{\luadirect{
 %  _G[\luastring{#1}] = penlight.tablex.update(penlight.luakeys.parse(\luastring{#2}), luakeys.parse(\luastring{#3}))
 %}}
-
 
 %\NewDocumentCommand{\tbldo}{m m O{} }{\luadirect{
 %  % tex.sprint(tostring(_G[\luastring{#1}][#2]))
