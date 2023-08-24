@@ -99,6 +99,12 @@
   \togglefalse{luaexpr}% safety set to false
 }
 
+\NewDocumentCommand{\ifluaxv}{m m O{}}{%
+  \luadirect{toggle_luaexpr(penlight.hasval(#1))}%
+  \iftoggle{luaexpr}{#2}{#3}%
+  \togglefalse{luaexpr}% safety set to false
+}
+
 %   testing ifluax
 %  {-->\ifluax{1 == 2}{\LARGE TRUE}[\tiny FALSE]<--test\\
 %  -->\ifluax{abc == nil}{\LARGE TRUE}[\tiny FALSE]<--test}
@@ -111,7 +117,7 @@
   penlight.tbls[\luastring{#1}] = {}
 }}
 
-\NewDocumentCommand{\tblfrkv}{m m O{}}{\luadirect{
+\NewDocumentCommand{\tblfrkv}{m m O{}}{ \luadirect{
   penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.luakeys.parse(\luastring{#3}))
 }}
 
@@ -123,9 +129,19 @@
   tex.sprint(tostring(penlight.tbls[\luastring{#1}][\luastring{#2}]))
 }}
 
-\NewDocumentCommand{\idxtbl}{m m}{\luadirect{
-  tex.sprint(tostring(penlight.tbls[\luastring{#1}][#2]))
+\NewDocumentCommand{\idxtbl}{m}{\luadirect{
+  tex.sprint(tostring(penlight.tbls.#1))
 }}
+
+\NewDocumentCommand{\deftbl}{s m m m }{\luadirect{% define a table, use * to make global definition
+  token.set_macro(\luastring{#4}, tostring(penlight.tbls[\luastring{#2}][\luastring{#3}]), \IfBooleanTF{#1}{'global'}{''})
+}}
+
+\NewDocumentCommand{\iftbl}{m m m O{}}{\ifluax{penlight.tbls[\luastring{#1}][\luastring{#2}]}{#3}[#4]}
+
+\NewDocumentCommand{\iftblv}{m m m O{}}{\ifluaxv{penlight.tbls[\luastring{#1}][\luastring{#2}]}{#3}[#4]}
+
+
 
 
 %\NewDocumentCommand{\tblupd}{ m m}{\luadirect{
@@ -150,3 +166,14 @@
 %}}
 
 
+
+
+%%%%%%%%5
+
+%\begin{luacode*}
+%  function set_dim(name, len)
+%    tex.sprint('\\global\\let\\'..name..'\\relax') -- reset length
+%    tex.sprint('\\global\\newlength{\\'..name..'}') -- make new len
+%    tex.setglue(name, tex.sp(len))
+%  end
+%\end{luacode*}

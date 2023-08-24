@@ -189,21 +189,25 @@ For the commands below note that:\\
 \cmd{\tblfrkv{t}{key-val string}[luakeys opts]}\\
 \cmd{\settbl{t}{k}{v}}\\
 \cmd{\gettbl{t}{k}}\\
-\cmd{\idxtbl{t}{K}}\\
+\cmd{\idxtbl{t.k}} or \cmd{\idxtbl{t[1]}}\\
 
 
 A use-case is provided below. You may want to use this interface for
 setting key-vals in commands.
 
 \begin{LTXexample}
-\tblfrkv{tkz}{x=1.5}%
-	[defaults={x=0,y=0,pg=c,nd=cd}]
-\settbl{tkz}{y}{kale}
-\gettbl{tkz}{x}\\
-\gettbl{tkz}{y}\\
-\gettbl{tkz}{nd}\\
-\gettbl{tkz}{pg}\\
-\gettbl{tkz}{z}\\
+\tblfrkv{my}{x=1.5,y}%
+	[defaults={x=0,1=one,n=false}]
+\gettbl{my}{x}\\
+\settbl{my}{y}{kale}
+\gettbl{my}{y}\\
+\idxtbl{my.x}\\
+\idxtbl{my['x']}\\
+\idxtbl{my['1']}\\
+\iftbl{my}{n}{true}[false]\\
+\iftblv{my}{n}{true}[false]\\
+\iftbl{my}{y}{true}[false]\\
+\iftblv{my}{y}{true}[false]\\
 \end{LTXexample}
 
 

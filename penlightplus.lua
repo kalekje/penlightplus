@@ -177,9 +177,10 @@ end
 
 --definition helpers -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-function penlight.tex.defmacro(cs, val) -- , will not work if val contains undefined tokens (so pre-define them if using..)
+function penlight.tex.defmacro(cs, val, g) -- , will not work if val contains undefined tokens (so pre-define them if using..)
     val = val or ''          -- however this works for arbitrary command names (\@hello-123 etc allowed)
-    token.set_macro(cs, val, 'global')
+    g = g or 'global'
+    token.set_macro(cs, val, g)
 end
 
 
