@@ -99,81 +99,49 @@
   \togglefalse{luaexpr}% safety set to false
 }
 
-\NewDocumentCommand{\ifluaxv}{m m O{}}{%
-  \luadirect{toggle_luaexpr(penlight.hasval(#1))}%
-  \iftoggle{luaexpr}{#2}{#3}%
-  \togglefalse{luaexpr}% safety set to false
-}
+\NewDocumentCommand{\ifluaxv}{m m O{}}{\ifluax{penlight.hasval(#1)}{#2}[#3]}
 
-%   testing ifluax
-%  {-->\ifluax{1 == 2}{\LARGE TRUE}[\tiny FALSE]<--test\\
-%  -->\ifluax{abc == nil}{\LARGE TRUE}[\tiny FALSE]<--test}
 
 
 %%%
-\luadirect{penlight.tbls = {}}
 
 \NewDocumentCommand{\newtbl}{m}{\luadirect{
   penlight.tbls[\luastring{#1}] = {}
+  penlight.rec_tbl = \luastring{#1}
 }}
 
 \NewDocumentCommand{\tblfrkv}{m m O{}}{ \luadirect{
-  penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.luakeys.parse(\luastring{#3}))
+  penlight.rec_tbl_opts = penlight.luakeys.parse(\luastring{#3})
+  penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.rec_tbl_opts)
+  penlight.rec_tbl = \luastring{#1}
 }}
 
-\NewDocumentCommand{\settbl}{m m m}{\luadirect{
-  penlight.tbls[\luastring{#1}][\luastring{#2}] = \luastring{#3}
+\NewDocumentCommand{\tblfrcsv}{m m O{}}{\tblfrkv{#1}{#2}[naked_as_value=true,#3]}
+
+
+\NewDocumentCommand{\kvtblundefcheck}{}{\luadirect{penlight.check_recent_tbl_undefault()}} % todo
+
+\NewDocumentCommand{\chgtbl}{ m }{ \luadirect{
+  penlight.rec_tbl = \luastring{#1}
 }}
 
-\NewDocumentCommand{\gettbl}{m m}{\luadirect{
-  tex.sprint(tostring(penlight.tbls[\luastring{#1}][\luastring{#2}]))
+\NewDocumentCommand{\gettbl}{m}{\luadirect{
+  penlight.get_tbl_item(\luastring{#1}, true)
 }}
 
-\NewDocumentCommand{\idxtbl}{m}{\luadirect{
-  tex.sprint(tostring(penlight.tbls.#1))
+\NewDocumentCommand{\settbl}{m m}{\luadirect{
+  penlight.set_tbl_item(\luastring{#1}, \luastring{#2})
 }}
 
-\NewDocumentCommand{\deftbl}{s m m m }{\luadirect{% define a table, use * to make global definition
-  token.set_macro(\luastring{#4}, tostring(penlight.tbls[\luastring{#2}][\luastring{#3}]), \IfBooleanTF{#1}{'global'}{''})
+\NewDocumentCommand{\deftbl}{ m m }{\luadirect{% define a table, use * to make definition
+  token.set_macro(\luastring{#2}, tostring(penlight.get_tbl_item(\luastring{#1})))
 }}
 
-\NewDocumentCommand{\iftbl}{m m m O{}}{\ifluax{penlight.tbls[\luastring{#1}][\luastring{#2}]}{#3}[#4]}
+\NewDocumentCommand{\gdeftbl}{ m m }{\luadirect{% define a table, use * to make global definition
+  token.set_macro(\luastring{#2}, tostring(penlight.get_tbl_item(\luastring{#1})), 'global')
+}}
 
-\NewDocumentCommand{\iftblv}{m m m O{}}{\ifluaxv{penlight.tbls[\luastring{#1}][\luastring{#2}]}{#3}[#4]}
+\NewDocumentCommand{\iftbl}{m m O{}}{\ifluax{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
 
+\NewDocumentCommand{\iftblv}{m m O{}}{\ifluaxv{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
 
-
-
-%\NewDocumentCommand{\tblupd}{ m m}{\luadirect{
-%  penlight.tablex.update(penlight.tbls[\luastring{#1}], penlight.tbls[\luastring{#2}])
-%}}
-%
-%\NewDocumentCommand{\tblupdkv}{ m m }{\luadirect{
-%  penlight.tablex.update(penlight.tbls[\luastring{#1}], penlight.luakeys.parse(\luastring{#2}))
-%}}
-
-%
-%% todo need a get table function. If blank is passed, the last table referenced is used.
-%\NewDocumentCommand{\tblfrkvII}{ m m m }{\luadirect{
-%  _G[\luastring{#1}] = penlight.tablex.update(penlight.luakeys.parse(\luastring{#2}), luakeys.parse(\luastring{#3}))
-%}}
-
-%\NewDocumentCommand{\tbldo}{m m O{} }{\luadirect{
-%  % tex.sprint(tostring(_G[\luastring{#1}][#2]))
-%  % todo allow one to use pl tablex function here,
-%  % {tbl}{update}[arg1][arg2]
-%  penlight.tablex[\luastring[#1]](_G[\luastring{}], _G[\luastring{}])
-%}}
-
-
-
-
-%%%%%%%%5
-
-%\begin{luacode*}
-%  function set_dim(name, len)
-%    tex.sprint('\\global\\let\\'..name..'\\relax') -- reset length
-%    tex.sprint('\\global\\newlength{\\'..name..'}') -- make new len
-%    tex.setglue(name, tex.sp(len))
-%  end
-%\end{luacode*}

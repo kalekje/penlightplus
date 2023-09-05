@@ -774,6 +774,71 @@ function penlight.tex.split2items(s, d)
 end
 
 
+penlight.tbls = {}
+
+penlight.rec_tbl = ''
+penlight.rec_tbl_opts = {}
+
+function penlight.get_tbl_index(s)
+    local tbl = ''
+    local key = ''
+    if s:find('%.') then
+        local tt = s:split('.')
+        tbl = tt[1]
+        key = tt[2]
+    elseif s:find('/') then
+        local tt = s:split('/')
+        tbl = tt[1]
+        key = tonumber(tonumber(tt[2]))
+        if key < 0 then key = #penlight.tbls[tbl]+1+key end
+    else
+        tbl = penlight.rec_tbl
+        key = tonumber(s) or s
+        if type(key) == 'number' and key < 0 then key = #penlight.tbls[tbl]+1+key end
+    end
+    if penlight.tbls[tbl] == nil or penlight.tbls[tbl][key] == nil then
+        penlight.tex.pkgerror('penlightplus',  'Invalid index of tbl using: "'..s..'"')
+    end
+    return tbl, key
+end
+
+function penlight.get_tbl_item(s, p) -- get item with string, p means print value
+  p = p or false
+  local tbl, key = penlight.get_tbl_index(s)
+  local itm = penlight.tbls[tbl][key]
+  if p then
+    tex.sprint(tostring(itm))
+  end
+  return itm
+end
+
+
+function penlight.set_tbl_item(s, v)
+  tbl, key = penlight.get_tbl_index(s)
+  penlight.tbls[tbl][key] = v
+end
+
+function penlight.check_recent_tbl_undefault()
+    local undefaults = {}
+    if penlight.rec_tbl_opts ~= nil then
+        local defaults = penlight.tablex.union(
+                penlight.rec_tbl_opts.defs or {},
+                penlight.rec_tbl_opts.defaults or {}
+        )
+        for k, v in pairs(penlight.tbls[penlight.rec_tbl]) do
+            if defaults[k] == nil then
+                undefaults[#undefaults+1] = k
+            end
+        end
+        if penlight.hasval(undefaults) then
+            penlight.tex.pkgerror('penlightplus',
+                    'Invalid keys passed to tbl keyval:  ' .. (', '):join(undefaults) ..
+                    ' ;   choices are:  ' .. (', '):join(penlight.tablex.keys(defaults))
+            )
+        end
+    end
+end
+
 
 if penlight.hasval(__PL_GLOBALS__) then
     -- iterators
@@ -810,8 +875,9 @@ if penlight.hasval(__PL_GLOBALS__) then
     penlight.filterfiles = penlight.utils.filterfiles
 
     penlight.a2 = penlight.array2d
+    A2d = penlight.array2d
     penlight.tbl = penlight.tablex
-
+    TX = penlight.tablex
 
     for k,v in pairs(penlight.tex) do  -- make tex functions global
         _G[k] = v

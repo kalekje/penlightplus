@@ -58,6 +58,8 @@
 \title{penlightplus}
 \subtitle{Additions to the Penlight Lua Libraries}
 
+
+
 \begin{document}
 %
 
@@ -72,15 +74,17 @@ If you want to use penlightplus.lua  with the \texttt{texlua} interpreter
 (no document is made, but useful for testing your Lua code),
 you can access it by setting \cmd{__SKIP_TEX__ = true} before loading. For example:
  \begin{verbatim}
-package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlightplus/?.lua'
-package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlight/?.lua'
+package.path = package.path .. ';'..'path/to/texmf/tex/lualatex/penlightplus/?.lua'
+package.path = package.path .. ';'..'path/to/texmf/tex/lualatex/penlight/?.lua'
 penlight = require'penlight'
 
 __SKIP_TEX__ = true  --only required if you want to use
                      --penlightplus without a LaTeX run
 __PL_GLOBALS__ = true -- optional, include global definitions
+
 require'penlightplus'
-\end{verbatim}
+
+ \end{verbatim}
 
 
 
@@ -95,7 +99,7 @@ The gloals flags below are taken care of in the package options:\\
 
 \subsubsection*{penlight additions}
 
-Some functionality is added to penlight/lua.
+Some functionality is added to penlight and Lua.
 
 \llcmd{pl.hasval(x)} Python-like boolean testing\\
 \llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
@@ -113,18 +117,19 @@ Some functionality is added to penlight/lua.
 \llcmd{_NumBkts} internal integer for tracking the number of brackets\\
 \llcmd{opencmd(cs)} prints \cmd{\cs}\{ and adds to the bracket counters.\\
 \\
-\llcmd{_xNoValue,}\cmd{_xTrue,_xFalse}: \cmd{xparse} equivalents for commands\\
+\llcmd{xNoValue,}\cmd{xTrue,xFalse}: \cmd{xparse} equivalents for commands\\
 \\
 \llcmd{prt(x),prtn(x)} print without or with a newline at end. Tries to help with special characters or numbers printing.\\
 \llcmd{prtl(l),prtt(t)} print a literal string, or table\\
 \llcmd{wrt(x), wrtn(x)} write to log\\
-\llcmd{help_wrt}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find.\\
+\llcmd{help_wrt}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find., alias is \cmd{wrth}\\
 \llcmd{prt_array2d(tt)} pretty print a 2d array\\
 \\
 \llcmd{pkgwarn}\cmd{(pkg, msg1, msg2)} throw a package warning\\
 \llcmd{pkgerror}\cmd{(pkg, msg1, msg2, stop)} throw a package error. If stop is true, immediately ceases compile.\\
 \\
-\llcmd{defcmd}\cmd{(cs, val)} like \cmd{\gdef}\\
+\llcmd{defcmd}\cmd{(cs, val)} like \cmd{\gdef}, but note that no special chars allowed in \cmd{cs}(eg. \cmd{@})\\
+\llcmd{defmacro}\cmd{(cs, val)} like \cmd{\gdef}, allows special characters, but any tokens in val must be pre-defined (this uses \cmd{token.set_macro} internally)\\
 \llcmd{newcmd}\cmd{(cs, val)} like \cmd{\newcommand}\\
 \llcmd{renewcmd}\cmd{(cs, val)} like \cmd{\renewcommand}\\
 \llcmd{prvcmd}\cmd{(cs, val)} like \cmd{\providecommand}\\
@@ -136,9 +141,11 @@ is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, 
 
 
 \subsubsection*{global extras}
-If \cmd{extrasglobals} is used and NOT \cmd{extras}, many additional globals are set for shortcuts\\
-All \cmd{pl.tex} modules are made global.\\
-\cmd{pl.hasval}, \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals with the function name.\\
+If the package option \cmd{globals} is used, many additional globals are set for easier scripting.
+All \cmd{pl.tex} functions, and variables, \cmd{pl.hasval},  \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals.
+\cmd{pl.tablex} is aliased as \cmd{TX} (which also includes all native Lua table functions), and
+\cmd{pl.array2d} is aliased as \cmd{A2d}.
+\\
 
 
 
@@ -147,7 +154,14 @@ All \cmd{pl.tex} modules are made global.\\
 based on the letters that \cmd{spec} is set to (or \cmd{def} if nothing is provided)
 This is useful if you want to write a command with flexibility on argument expansion.
 The user can specify \cmd{n}, \cmd{o}, \cmd{t}, and \cmd{f} (case insensitve) if they want
-no, once, twice, or full expansion.
+no, once, twice, or full expansion. For example, we can control the expansion of args 2 and 3 with arg 1:
+
+\begin{verbatim}
+	\NewDocumentCommand{\splitToComma}{ O{nn} m m }{%
+  \MakeluastringCommands[nn]{#1}%
+  \luadirect{penlight.tex.split2comma(\plluastringA{#2},\plluastringB{#3})}%
+}
+\end{verbatim}
 
 %   BELOW IS FOR TROUBLESHOOTING ABOVE
 %\def\NOTexp{\ONEexp}
@@ -170,45 +184,64 @@ no, once, twice, or full expansion.
 
 \subsection*{Lua boolean expressions for LaTeX conditionals}
 
-\cmd{\ifluax{<Lua expr>}{<do if true>}[<do if false>]}
+\cmd{\ifluax{<Lua expr>}{<do if true>}[<do if false>]} and\\ \cmd{\ifluax{<Lua expr>}{<do if true>}[<do if false>]} for truthy (uses \cmd{penlight.hasval})
 
-\begin{LTXexample}
+\begin{LTXexample}[width=0.3\linewidth]
 \ifluax{3^3 == 27}{3*3*3 is 27}[WRONG]\\
 \ifluax{abc123 == nil}{Var is nil}[WRONG]\\
 \ifluax{not true}{tRuE}[fAlSe]\\
+\ifluax{''}{TRUE}[FALSE]\\
+\ifluaxv{''}{true}[false]\\
 \end{LTXexample}
 
 \subsection*{Creating and using Lua tables in LaTeX}
 \cmd{penlightplus} provides a Lua-table interface. Tables are stored in the
 \cmd{penlight.tbls} table.
 
-For the commands below note that:\\
-\cmd{t=table name, v=value, k=key (auto-wrapped in ""), K=key (not wrapped)}
 
-\cmd{\newtbl{t}}\\
-\cmd{\tblfrkv{t}{key-val string}[luakeys opts]}\\
-\cmd{\settbl{t}{k}{v}}\\
-\cmd{\gettbl{t}{k}}\\
-\cmd{\idxtbl{t.k}} or \cmd{\idxtbl{t[1]}}\\
+\cmd{\newtbl{t}} declares a new table with name \cmd{t}\\
+\cmd{\chgtbl{t}} changes the 'recent' table\\
+\cmd{\tblfrkv{t}{key-val string}[luakeys opts]} new table from key-vals using \cmd{luakeys} \\
+ \cmd{\tblfrcsv} a shorthand \cmd{\tblfrkv{t}{csv}[naked_as_value=true,opts]}, a good way to convert  a comma-separated list to an array\\
+\cmd{\settbl{i}{v}} sets a value of the table/index \cmd{i} to \cmd{v}\\
+\cmd{\gettbl{i}} gets the value and \cmd{tex.sprint()}'s it\\
+\cmd{\deftbl{i}{d}} pushes the value to a \cmd{cs} named \cmd{d}\\
+\cmd{\gdeftbl{i}{d}} pushes the value to a global\\
+\cmd{\iftbl{i}{tr}[fa]} runs code \cmd{ta} if the item is true else \cmd{fr}\\
+\cmd{\iftblv{i}{tr}[fa]} runs code \cmd{ta} if the item is truthy else \cmd{fr}\\
+\cmd{\kvtblundefcheck} will throw an error if you use define a table from key-values
+and use a key that was not specified in the luakeys parse options via \cmd{opts.defaults} or \cmd{opts.defs}.
 
+There are 3 ways to use the index (placeholder \cmd{{i}} above).
+\cmd{t.key} where \cmd{t} is the table name and \cmd{key} is a string key,
+\cmd{t/int} where \cmd{int} is an integer index (ie. uses \cmd{t[int]}, note that negative indexes are allowered where -1 is the last element),
+or simply use \cmd{ind} without the table name, where the assumed table is the last one that was created or changed to, (passing a number will used as an integer index).
+\enlargethispage{2em}
+\begin{LTXexample}[width=0.3\linewidth]
+\tblfrkv{my}{a,b,c,first=john,last=smith}%
+	[defaults={x=0,1=one,n=false,y=yes}]
+\gettbl{my.a}\\
+\gettbl{my.x}\\
+\iftbl{n}{tr}[fa]\\
+\iftblv{n}{TR}[FA]\\
+\iftbl{my.y}{Tr}[Fa]\\
+\iftblv{y}{tR}[fA]\\
+%% \kvtblundefcheck % would throw error
+\deftbl{my.first}{mydef} \mydef\\
+{\deftbl{last}{mydef} \mydef} \mydef\\
+{\gdeftbl{last}{mydef}} \mydef\\
 
-A use-case is provided below. You may want to use this interface for
-setting key-vals in commands.
-
-\begin{LTXexample}
-\tblfrkv{my}{x=1.5,y}%
-	[defaults={x=0,1=one,n=false}]
-\gettbl{my}{x}\\
-\settbl{my}{y}{kale}
-\gettbl{my}{y}\\
-\idxtbl{my.x}\\
-\idxtbl{my['x']}\\
-\idxtbl{my['1']}\\
-\iftbl{my}{n}{true}[false]\\
-\iftblv{my}{n}{true}[false]\\
-\iftbl{my}{y}{true}[false]\\
-\iftblv{my}{y}{true}[false]\\
+\tblfrcsv{me}{a,b,"c,see",d,e}
+\gettbl{me/1},\gettbl{2}\\
+\gettbl{3}\\
+\settbl{me/4}{D}\gettbl{me/4}\\
+\settbl{5}{E}\gettbl{5}\\
+\gettbl{-2},\gettbl{me/-1}\\
+%% \gettbl{k} % would throw error
 \end{LTXexample}
+
+
+
 
 
 
@@ -216,7 +249,7 @@ setting key-vals in commands.
 Splitting text (or a cmd) into oxford comma format via:
 \cmd{\splitToComma[expansion level]{text}{text to split on}}:
 
-\begin{LTXexample}
+\begin{LTXexample}[width=0.3\linewidth]
 -\splitToComma{  j doe  }{\and}-\\
 -\splitToComma{  j doe \and s else  }{\and}-\\
 -\splitToComma{  j doe \and s else \and a per }{\and}-\\
