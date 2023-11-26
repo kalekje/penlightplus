@@ -62,12 +62,12 @@
   \luadirect{penlight.tex.aliasluastring(\luastring{#2},\luastring{#1})}%
 }
 
-\NewDocumentCommand{\splitToComma}{ O{nn} m m }{%
+\NewDocumentCommand{\splittocomma}{ O{nn} m m }{%
   \MakeluastringCommands[nn]{#1}%
   \luadirect{penlight.tex.split2comma(\plluastringA{#2},\plluastringB{#3})}%
 }
 
-\NewDocumentCommand{\splitToItems}{ O{NN} m m }{%
+\NewDocumentCommand{\splittoitems}{ O{NN} m m }{%
   \MakeluastringCommands[nn]{#1}%
   \luadirect{penlight.tex.split2items(\plluastringA{#2},\plluastringB{#3})}%
 }
@@ -103,45 +103,67 @@
 
 
 
-%%%
+%%% tbls below
 
-\NewDocumentCommand{\newtbl}{m}{\luadirect{
+\NewDocumentCommand{\tblnew}{m}{\luadirect{% initialize a tbl
   penlight.tbls[\luastring{#1}] = {}
   penlight.rec_tbl = \luastring{#1}
 }}
 
-\NewDocumentCommand{\tblfrkv}{m m O{}}{ \luadirect{
+\NewDocumentCommand{\tblfrkv}{m +m O{}}{\luadirect{%
   penlight.rec_tbl_opts = penlight.luakeys.parse(\luastring{#3})
-  penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(\luastring{#2}, penlight.rec_tbl_opts)
+  penlight.wrth(\luastring{#2}, '??')
+  penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(string.subpar(\luastring{#2}), penlight.rec_tbl_opts)
   penlight.rec_tbl = \luastring{#1}
 }}
 
-\NewDocumentCommand{\tblfrcsv}{m m O{}}{\tblfrkv{#1}{#2}[naked_as_value=true,#3]}
-
-
-\NewDocumentCommand{\kvtblundefcheck}{}{\luadirect{penlight.check_recent_tbl_undefault()}} % todo
-
-\NewDocumentCommand{\chgtbl}{ m }{ \luadirect{
+\NewDocumentCommand{\tblfrkvN}{m +m O{}}{\luadirect{%
+  penlight.rec_tbl_opts = penlight.luakeys.parse(\luastring{#3})
+  penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(string.subpar(\luastringN{#2}), penlight.rec_tbl_opts)
   penlight.rec_tbl = \luastring{#1}
 }}
 
-\NewDocumentCommand{\gettbl}{m}{\luadirect{
+\NewDocumentCommand{\tblfrcsv}{m +m O{}}{\tblfrkv{#1}{#2}[naked_as_value=true,#3]}
+
+
+\NewDocumentCommand{\tblkvundefcheck}{}{\luadirect{penlight.check_recent_tbl_undefault()}}% check defaults list and throw error if foreign keys were used
+
+\NewDocumentCommand{\tblchg}{ m }{\luadirect{% change recent table
+  penlight.rec_tbl = \luastring{#1}
+}}
+
+
+\NewDocumentCommand{\tblget}{m}{\luadirect{% get an item
   penlight.get_tbl_item(\luastring{#1}, true)
 }}
 
-\NewDocumentCommand{\settbl}{m m}{\luadirect{
+\NewDocumentCommand{\tblset}{m m}{\luadirect{% set item with {value}
   penlight.set_tbl_item(\luastring{#1}, \luastring{#2})
 }}
 
-\NewDocumentCommand{\deftbl}{ m m }{\luadirect{% define a table, use * to make definition
+\NewDocumentCommand{\tbldef}{ m m }{\luadirect{% define a table, use * to make definition
   token.set_macro(\luastring{#2}, tostring(penlight.get_tbl_item(\luastring{#1})))
 }}
 
-\NewDocumentCommand{\gdeftbl}{ m m }{\luadirect{% define a table, use * to make global definition
+\NewDocumentCommand{\tblgdef}{ m m }{\luadirect{% define a table, use * to make global definition
   token.set_macro(\luastring{#2}, tostring(penlight.get_tbl_item(\luastring{#1})), 'global')
 }}
 
-\NewDocumentCommand{\iftbl}{m m O{}}{\ifluax{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
+\NewDocumentCommand{\tbldefxy}{ m m }{\luadirect{penlight.def_tbl_coords(penlight.get_tbl_item(\luastring{#1}), \luastring{#2})}}% define #2x and #2y from a space delimited x-y pair
 
-\NewDocumentCommand{\iftblv}{m m O{}}{\ifluaxv{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
 
+\NewDocumentCommand{\tblif}{m m O{}}{\ifluax{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
+
+\NewDocumentCommand{\tblifv}{m m O{}}{\ifluaxv{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
+
+
+% legacy code, delete this
+\let\kvtblundefcheck\tblkvundefcheck
+\let\chgtbl\tblchg
+\let\newtbl\tblnew
+\let\gettbl\tblget
+\let\settbl\tblset
+\let\deftbl\tbldef
+\let\gdeftbl\tblgdef
+\let\iftbl\tblif
+\let\iftblv\tblifv

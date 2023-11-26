@@ -157,7 +157,7 @@ The user can specify \cmd{n}, \cmd{o}, \cmd{t}, and \cmd{f} (case insensitve) if
 no, once, twice, or full expansion. For example, we can control the expansion of args 2 and 3 with arg 1:
 
 \begin{verbatim}
-	\NewDocumentCommand{\splitToComma}{ O{nn} m m }{%
+	\NewDocumentCommand{\splittocomma}{ O{nn} m m }{%
   \MakeluastringCommands[nn]{#1}%
   \luadirect{penlight.tex.split2comma(\plluastringA{#2},\plluastringB{#3})}%
 }
@@ -199,17 +199,19 @@ no, once, twice, or full expansion. For example, we can control the expansion of
 \cmd{penlight.tbls} table.
 
 
-\cmd{\newtbl{t}} declares a new table with name \cmd{t}\\
-\cmd{\chgtbl{t}} changes the 'recent' table\\
+\cmd{\tblnew{t}} declares a new table with name \cmd{t}\\
+\cmd{\tblchg{t}} changes the 'recent' table\\
 \cmd{\tblfrkv{t}{key-val string}[luakeys opts]} new table from key-vals using \cmd{luakeys} \\
+\cmd{\tblfrkvN{t}{key-val string}[luakeys opts]} does not expand key-val string \cmd{luakeys} \\
  \cmd{\tblfrcsv} a shorthand \cmd{\tblfrkv{t}{csv}[naked_as_value=true,opts]}, a good way to convert  a comma-separated list to an array\\
-\cmd{\settbl{i}{v}} sets a value of the table/index \cmd{i} to \cmd{v}\\
-\cmd{\gettbl{i}} gets the value and \cmd{tex.sprint()}'s it\\
-\cmd{\deftbl{i}{d}} pushes the value to a \cmd{cs} named \cmd{d}\\
-\cmd{\gdeftbl{i}{d}} pushes the value to a global\\
+\cmd{\tblset{i}{v}} sets a value of the table/index \cmd{i} to \cmd{v}\\
+\cmd{\tblget{i}} gets the value and \cmd{tex.sprint()}'s it\\
+\cmd{\tbldef{i}{d}} pushes the value to a \cmd{cs} named \cmd{d}\\
+\cmd{\tblgdef{i}{d}} pushes the value to a global\\
+\cmd{\tbldefxy{i}{d}} splits the value of item by spaces creates two definitions \cmd{\dx} and \cmd{\dy}. Useful for pasing tikz coordinates like \cmd{xy=0 5}\\
 \cmd{\iftbl{i}{tr}[fa]} runs code \cmd{ta} if the item is true else \cmd{fr}\\
 \cmd{\iftblv{i}{tr}[fa]} runs code \cmd{ta} if the item is truthy else \cmd{fr}\\
-\cmd{\kvtblundefcheck} will throw an error if you use define a table from key-values
+\cmd{\tblkvundefcheck} will throw an error if you use define a table from key-values
 and use a key that was not specified in the luakeys parse options via \cmd{opts.defaults} or \cmd{opts.defs}.
 
 There are 3 ways to use the index (placeholder \cmd{{i}} above).
@@ -220,53 +222,68 @@ or simply use \cmd{ind} without the table name, where the assumed table is the l
 \begin{LTXexample}[width=0.3\linewidth]
 \tblfrkv{my}{a,b,c,first=john,last=smith}%
 	[defaults={x=0,1=one,n=false,y=yes}]
-\gettbl{my.a}\\
-\gettbl{my.x}\\
-\iftbl{n}{tr}[fa]\\
-\iftblv{n}{TR}[FA]\\
-\iftbl{my.y}{Tr}[Fa]\\
-\iftblv{y}{tR}[fA]\\
+\tblget{my.a}\\
+\tblset{a}{tRuE!!}
+\tblget{a}\\
+\tblget{my.x}\\
+\tblif{n}{tr}[fa]\\
+\tblifv{n}{TR}[FA]\\
+\tblif{my.y}{Tr}[Fa]\\
+\tblifv{y}{tR}[fA]\\
 %% \kvtblundefcheck % would throw error
-\deftbl{my.first}{mydef} \mydef\\
-{\deftbl{last}{mydef} \mydef} \mydef\\
-{\gdeftbl{last}{mydef}} \mydef\\
+\tbldef{my.first}{mydef} \mydef\\
+{\tbldef{last}{mydef} \mydef} \mydef\\
+{\tblgdef{last}{mydef}} \mydef\\
+
+\tblset{my.a}{12 36}
+\tbldefxy{my.a}{coord} (\coordx,\coordy)
 
 \tblfrcsv{me}{a,b,"c,see",d,e}
-\gettbl{me/1},\gettbl{2}\\
-\gettbl{3}\\
-\settbl{me/4}{D}\gettbl{me/4}\\
-\settbl{5}{E}\gettbl{5}\\
-\gettbl{-2},\gettbl{me/-1}\\
-%% \gettbl{k} % would throw error
+\tblget{me/1},\tblget{2}\\
+\tblget{3}\\
+\tblset{me/4}{D}\tblget{me/4}\\
+\tblset{5}{E}\tblget{5}\\
+\tblget{-2},\tblget{me/-1}\\
+%% \tblget{k} % would throw error
 \end{LTXexample}
 
 
+\tblfrcsv{me}{
+Hello=world,
 
 
+Bonjour=terre,
+}
+\tblget{Hello}
+\tblget{Bonjour}
+
+
+Note: for thisf versions: all latex tbl commands are now prefixed with \cmd{tbl}, eg., \cmd{tblget}, \cmd{tblset}.
+Old-style commands eg. \cmd{gettbl} will be kept as aliases for a few more releases then removed.
 
 
 \subsection*{Splitting strings}
 Splitting text (or a cmd) into oxford comma format via:
-\cmd{\splitToComma[expansion level]{text}{text to split on}}:
+\cmd{\splittocomma[expansion level]{text}{text to split on}}:
 
 \begin{LTXexample}[width=0.3\linewidth]
--\splitToComma{  j doe  }{\and}-\\
--\splitToComma{  j doe \and s else  }{\and}-\\
--\splitToComma{  j doe \and s else \and a per }{\and}-\\
--\splitToComma{  j doe \and s else \and a per \and f guy}{\and}-
+-\splittocomma{  j doe  }{\and}-\\
+-\splittocomma{  j doe \and s else  }{\and}-\\
+-\splittocomma{  j doe \and s else \and a per }{\and}-\\
+-\splittocomma{  j doe \and s else \and a per \and f guy}{\and}-
 
 \def\authors{j doe \and s else \and a per \and f guy}
-\splitToComma[o]{\authors}{\and}
+\splittocomma[o]{\authors}{\and}
 \end{LTXexample}
 
 The expansion level is up to two characters, \cmd{n|o|t|f}, to control the expansion of each argument.
 
-You can do a similar string split but to \cmd{\item} instead of commas with \cmd{\splitToItems}
+You can do a similar string split but to \cmd{\item} instead of commas with \cmd{\splittoitems}
 \begin{LTXexample}
 \begin{itemize}
-  \splitToItems{kale\and john}{\and}
-  \splitToItems{kale -john -someone else}{-}
-  \splitToItems{1,2,3,4}{,}
+  \splittoitems{kale\and john}{\and}
+  \splittoitems{kale -john -someone else}{-}
+  \splittoitems{1,2,3,4}{,}
 \end{itemize}
 \end{LTXexample}
 

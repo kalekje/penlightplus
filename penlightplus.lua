@@ -449,6 +449,10 @@ function str_mt.__index.trimfl(str)
     return str:sub(2,-2)
 end
 
+function str_mt.__index.subpar(s, r)
+    r = r or ' '
+    return (s:gsub('\\par', r))
+end
 
 
 -- -- -- -- function stuff
@@ -802,6 +806,7 @@ function penlight.get_tbl_index(s)
     return tbl, key
 end
 
+
 function penlight.get_tbl_item(s, p) -- get item with string, p means print value
   p = p or false
   local tbl, key = penlight.get_tbl_index(s)
@@ -837,6 +842,18 @@ function penlight.check_recent_tbl_undefault()
             )
         end
     end
+end
+
+
+penlight.tbl_xysep = '%s+' -- spaces separate x-y coords
+function penlight.def_tbl_coords(str, def)
+    -- todo could definitely make this flexible for a table...
+    local x, y = str:strip():splitv(penlight.tbl_xysep)
+     --if (~penlight.hasval(x)) or (~penlight.hasval(y))  then
+     --  penlight.tex.pkgerror('penlightplus', 'def_tbl_coords function could not parse coordiantes given as "'..str..'" ensure two numbers separated by space are given!', '', true)
+     --end
+    token.set_macro(def..'x', tostring(x))
+    token.set_macro(def..'y', tostring(y))
 end
 
 
