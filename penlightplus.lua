@@ -845,7 +845,7 @@ function penlight.check_recent_tbl_undefault()
 end
 
 
-penlight.tbl_xysep = '%s+' -- spaces separate x-y coords
+penlight.tbl_xysep = '%s+' -- spaces separate x-y coordinates
 function penlight.def_tbl_coords(str, def)
     -- todo could definitely make this flexible for a table...
     local x, y = str:strip():splitv(penlight.tbl_xysep)
