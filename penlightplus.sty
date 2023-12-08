@@ -112,7 +112,6 @@
 
 \NewDocumentCommand{\tblfrkv}{m +m O{}}{\luadirect{%
   penlight.rec_tbl_opts = penlight.luakeys.parse(\luastring{#3})
-  penlight.wrth(\luastring{#2}, '??')
   penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(string.subpar(\luastring{#2}), penlight.rec_tbl_opts)
   penlight.rec_tbl = \luastring{#1}
 }}
@@ -141,16 +140,33 @@
   penlight.set_tbl_item(\luastring{#1}, \luastring{#2})
 }}
 
-\NewDocumentCommand{\tbldef}{ m m }{\luadirect{% define a table, use * to make definition
-  token.set_macro(\luastring{#2}, tostring(penlight.get_tbl_item(\luastring{#1})))
+% todo if no definition is provided, assume <tblname><key>
+\NewDocumentCommand{\tbldef}{ m m }{\luadirect{% define a {table key}{def}
+  local _tbl, _key = penlight.get_tbl_index(\luastring{#1})
+  local _tbl_def_ = \luastring{#2}
+  if _tbl_def_ == '' then _tbl_def_ = 'dtbl'.._tbl.._key end
+  token.set_macro(_tbl_def_, tostring(penlight.tbls[_tbl][_key]))
 }}
+
+\NewDocumentCommand{\tbldefall}{ m m }{\luadirect{% define all {table} keys to {table} \table<key1>
+   % todo maybe change tbldef {def} to [def] and make same as table name
+    local _tbl = penlight.get_tbl_name(\luastring{#1})
+    local _tbl_def_ = \luastring{#2}
+     if _tbl_def_ == '' then _tbl_def_ = 'dtbl'.._tbl end
+   for k, v in pairs(penlight.tbls[_tbl]) do
+    token.set_macro(_tbl_def_..k, tostring(v))
+  end
+}}
+
 
 \NewDocumentCommand{\tblgdef}{ m m }{\luadirect{% define a table, use * to make global definition
-  token.set_macro(\luastring{#2}, tostring(penlight.get_tbl_item(\luastring{#1})), 'global')
+  local _tbl, _key = penlight.get_tbl_index(\luastring{#1})
+  local _tbl_def_ = \luastring{#2}
+  if _tbl_def_ == '' then _tbl_def_ = 'dtbl'.._tbl.._key end
+  token.set_macro(_tbl_def_, tostring(penlight.tbls[_tbl][_key]), 'global')
 }}
 
-\NewDocumentCommand{\tbldefxy}{ m m }{\luadirect{penlight.def_tbl_coords(penlight.get_tbl_item(\luastring{#1}), \luastring{#2})}}% define #2x and #2y from a space delimited x-y pair
-
+\NewDocumentCommand{\tbldefxy}{ m m }{\luadirect{penlight.def_tbl_coords(\luastring{#1}, \luastring{#2})}}% define #2x and #2y from a space delimited x-y pair
 
 \NewDocumentCommand{\tblif}{m m O{}}{\ifluax{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
 

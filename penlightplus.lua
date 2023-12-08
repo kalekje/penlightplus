@@ -7,7 +7,7 @@
 --% in the Software without restriction, including without limitation the rights
 --% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 --% copies of the Software, and to permit persons to whom the Software is
---% furnished to do so, subject to the following conditions:
+--% furnished to do so, subjdeect to the following conditions:
 --%
 --% The above copyright notice and this permission notice shall be included in
 --% all copies or substantial portions of the Software.
@@ -24,6 +24,7 @@
 
 
 
+-- https://lunarmodules.github.io/Penlight/
 
 __PL_PLUS__ = true
 __PL_SKIP_TEX__ = __PL_SKIP_TEX__ or false --if declared true before here, it will use regular print functions
@@ -33,7 +34,6 @@ __PL_NO_HYPERREF__ = __PL_NO_HYPERREF__ or false
 
 
 penlight.luakeys = require'luakeys'()
-
 
 penlight.COMP = require'pl.comprehension'.new() -- for comprehensions
 
@@ -63,13 +63,15 @@ end
 -- Some simple and helpful LaTeX functions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 -- xparse defaults
-penlight.tex._xTrue = '\\BooleanTrue '
-penlight.tex._xFalse = '\\BooleanFalse '
-penlight.tex._xNoValue = '-NoValue-'
 
 penlight.tex.xTrue = '\\BooleanTrue '
 penlight.tex.xFalse = '\\BooleanFalse '
 penlight.tex.xNoValue = '-NoValue-'
+
+penlight.tex._xTrue = '\\BooleanTrue '
+penlight.tex._xFalse = '\\BooleanFalse '
+penlight.tex._xNoValue = '-NoValue-'
+
 
 --Generic LuaLaTeX utilities for print commands or environments
 
@@ -130,7 +132,7 @@ function penlight.tex.prtt(tab, d1, d2) -- prints a table with new line between 
     end
 end
 
-function penlight.tex.help_wrt(s1, s2) -- helpful printing, makes it easy to debug, s1 is object, s2 is note
+function penlight.tex.wrth(s1, s2) -- helpful printing, makes it easy to debug, s1 is object, s2 is note
     local wrt2 = wrt or texio.write_nl or print
     s2 = s2 or ''
     wrt2('\nvvvvv '..s2..'\n')
@@ -141,9 +143,8 @@ function penlight.tex.help_wrt(s1, s2) -- helpful printing, makes it easy to deb
     end
     wrt2('\n^^^^^\n')
 end
-penlight.help_wrt = penlight.tex.help_wrt
+penlight.help_wrt = penlight.tex.wrth
 penlight.wrth = penlight.help_wrt
-penlight.tex.wrth = penlight.help_wrt
 
 function penlight.tex.prt_array2d(t)
     for _, r in ipairs(t) do
@@ -455,6 +456,23 @@ function str_mt.__index.subpar(s, r)
 end
 
 
+function str_mt.__index.fmt(s, t, fmt) -- format a $1 string with an array or table and formats
+    -- formats can be a luakeys string, or a table
+    fmt = fmt or {}
+    if type(fmt) == 'string' then
+        fmt = penlight.tablex.strinds(penlight.luakeys.parse(fmt, {naked_as_value=true}))
+    end
+    if type(t) ~= 'table' then t = {t} end
+    t = penlight.tablex.strinds(t)
+    for k, f in pairs(fmt)  do -- apply formats
+        t[k] = string.format('%'..f, t[tostring(k)])
+    end
+    return s % t
+end
+
+
+
+
 -- -- -- -- function stuff
 
 function penlight.clone_function(fn)
@@ -500,6 +518,18 @@ end
 
 
 -- table stuff below
+
+function penlight.tablex.strinds(t) -- convert indices that are numbers to string indices
+    local t_new = {}
+    for i, v in pairs(t) do -- ensure all indexes are strings
+      if type(i) == 'number' then
+          t_new[tostring(i)] = v
+      else
+          t_new[i] = v
+      end
+    end
+  return t_new
+end
 
 
 function penlight.tablex.map_slice(func, T, j1, j2)
@@ -783,6 +813,13 @@ penlight.tbls = {}
 penlight.rec_tbl = ''
 penlight.rec_tbl_opts = {}
 
+function penlight.get_tbl_name(s)
+    if s == '' then
+        return penlight.rec_tbl
+    end
+    return s
+end
+
 function penlight.get_tbl_index(s)
     local tbl = ''
     local key = ''
@@ -844,24 +881,54 @@ function penlight.check_recent_tbl_undefault()
     end
 end
 
-
+-- TODO TODO TODO get error working xy def, and referene which table for key-vals
 penlight.tbl_xysep = '%s+' -- spaces separate x-y coordinates
-function penlight.def_tbl_coords(str, def)
-    -- todo could definitely make this flexible for a table...
+function penlight.def_tbl_coords(ind, def)
+    local tbl, key = penlight.get_tbl_index(ind)
+    local str = penlight.tbls[tbl][key]
+    if def == '' then def = 'dtbl'..tbl..key end
     local x, y = str:strip():splitv(penlight.tbl_xysep)
-     --if (~penlight.hasval(x)) or (~penlight.hasval(y))  then
-     --  penlight.tex.pkgerror('penlightplus', 'def_tbl_coords function could not parse coordiantes given as "'..str..'" ensure two numbers separated by space are given!', '', true)
-     --end
+     if (not penlight.hasval(x)) or (not penlight.hasval(y))  then
+       penlight.tex.pkgerror('penlightplus', 'def_tbl_coords function could not parse coordiantes given as "'..str..'" ensure two numbers separated by space are given!', '', true)
+     end
     token.set_macro(def..'x', tostring(x))
     token.set_macro(def..'y', tostring(y))
 end
 
 
+--
+
+function penlight.make_tex_global()
+    for k,v in pairs(penlight.tex) do  -- make tex functions global
+            _G[k] = v
+        end
+end
+
+
+penlight.kpairs = penlight.utils.kpairs
+penlight.npairs = penlight.utils.npairs
+penlight.writefile = penlight.utils.writefile
+penlight.readfile = penlight.utils.readfile
+penlight.readlines = penlight.utils.readfile
+penlight.filterfiles = penlight.utils.filterfiles
+
+-- adopt table functions in tablex
+penlight.tablex.concat = table.concat
+penlight.tablex.insert = table.insert
+penlight.tablex.maxn = table.maxn
+penlight.tablex.remove = table.remove
+penlight.tablex.sort = table.sort
+
+penlight.tbx = penlight.tablex
+penlight.a2d = penlight.array2d
+
 if penlight.hasval(__PL_GLOBALS__) then
     -- iterators
     kpairs = penlight.utils.kpairs
     npairs = penlight.utils.npairs
-    --enum = utils.enum
+
+    hasval = penlight.hasval
+    COMP = penlight.COMP
 
     for k,v in pairs(penlight.tablex) do  -- extend the table table to contain tablex functions
         if k == 'sort' then
@@ -873,38 +940,15 @@ if penlight.hasval(__PL_GLOBALS__) then
         end
     end
     table.join = table.concat -- alias
-    -- todo should tablex have all table functions
 
-    penlight.tablex.concat = table.concat
-    penlight.tablex.insert = table.insert
-    penlight.tablex.maxn = table.maxn
-    penlight.tablex.remove = table.remove
-    penlight.tablex.sort = table.sort
-
-    hasval = penlight.hasval
-    COMP = penlight.COMP
-
-    -- shortcuts
--- http://stevedonovan.github.io/Penlight/api/libraries/penlight.utils.html
-    penlight.writefile = penlight.utils.writefile
-    penlight.readfile = penlight.utils.readfile
-    penlight.readlines = penlight.utils.readfile
-    penlight.filterfiles = penlight.utils.filterfiles
-
-    penlight.a2 = penlight.array2d
-    A2d = penlight.array2d
-    penlight.tbl = penlight.tablex
-    TX = penlight.tablex
-
-    for k,v in pairs(penlight.tex) do  -- make tex functions global
-        _G[k] = v
-    end
-
+	a2d = penlight.array2d
+    tbx = penlight.tablex
 end
 
 
 
 
+-- graveyard
 
     --_xTrue = penlight.tex._xTrue
     --_xFalse = penlight.tex._xFalse

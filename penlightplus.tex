@@ -104,8 +104,26 @@ Some functionality is added to penlight and Lua.
 \llcmd{pl.hasval(x)} Python-like boolean testing\\
 \llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
 \llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
+\\
+
+\llcmd{string.}\cmd{upfirst(s)} uppercase first letter\\
+\llcmd{string.}\cmd{delspace(s)} delete all spaces\\
+\llcmd{string.}\cmd{trimfl(s)}remove first and last chars\\
+\llcmd{string.}\cmd{appif(s, append, bool, alternate)}\\
+\llcmd{string.}\cmd{gfirst(s, t)}return first matched patter from an array of patterns t\\
+%\llcmd{string.}\cmd{gnum(s)} extract a number from a string\\
+\llcmd{string.}\cmd{gextract(s)} extract a pattern from a string (returns capture and new string with capture removed)\\
 \llcmd{string.}\cmd{totable(s)} string a table of characters\\
+\llcmd{string.}\cmd{tolist(s)} string a table of characters\\
+\llcmd{string.}\cmd{containsany(s,t)} checks if any of the array of strings \cmd{t} are in \cmd{s} using \cmd{string.find}\\
+\llcmd{string.}\cmd{containsanycase(s,t)} case-insensitive version\\
 \llcmd{string.}\cmd{delspace(s)} clear spaces from string\\
+\llcmd{string.}\cmd{subpar(s, c)} replaces \cmd{\\par} with a character of your choice default is space\\
+\llcmd{string.}\cmd{fmt(s, t, fmt)} format a string like \cmd{format_operator}, but with
+a few improvements. \cmd{t} can be an array (reference items like \cmd{\$1} in the string),
+and \cmd{fmt} can be a table of formats (keys correspond to those in \cmd{t}), or a string that
+is processed by luakeys.\\
+
 \llcmd{pl.}\cmd{char(n)} return letter corresponding to 1=a, 2=b, etc.\\
 \llcmd{pl.}\cmd{Char(n)} return letter corresponding to 1=A, 2=B, etc.\\
 
@@ -122,7 +140,7 @@ Some functionality is added to penlight and Lua.
 \llcmd{prt(x),prtn(x)} print without or with a newline at end. Tries to help with special characters or numbers printing.\\
 \llcmd{prtl(l),prtt(t)} print a literal string, or table\\
 \llcmd{wrt(x), wrtn(x)} write to log\\
-\llcmd{help_wrt}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find., alias is \cmd{wrth}\\
+\llcmd{wrh}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find., alias is \cmd{help_wrt}, also in \cmd{pl.wrth}\\
 \llcmd{prt_array2d(tt)} pretty print a 2d array\\
 \\
 \llcmd{pkgwarn}\cmd{(pkg, msg1, msg2)} throw a package warning\\
@@ -142,9 +160,11 @@ is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, 
 
 \subsubsection*{global extras}
 If the package option \cmd{globals} is used, many additional globals are set for easier scripting.
-All \cmd{pl.tex} functions, and variables, \cmd{pl.hasval},  \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals.
-\cmd{pl.tablex} is aliased as \cmd{TX} (which also includes all native Lua table functions), and
-\cmd{pl.array2d} is aliased as \cmd{A2d}.
+\cmd{pl.hasval},  \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals.
+\cmd{pl.tablex} is aliased as \cmd{pl.tbx and tbx} (which also includes all native Lua table functions), and
+\cmd{pl.array2d} is aliased as \cmd{pl.a2d and a2d}.
+
+If you want global \cmd{pl.tex} funcs and vars, call \cmd{pl.make_tex_global()}
 \\
 
 
@@ -207,9 +227,11 @@ no, once, twice, or full expansion. For example, we can control the expansion of
  \cmd{\tblfrcsv} a shorthand \cmd{\tblfrkv{t}{csv}[naked_as_value=true,opts]}, a good way to convert  a comma-separated list to an array\\
 \cmd{\tblset{i}{v}} sets a value of the table/index \cmd{i} to \cmd{v}\\
 \cmd{\tblget{i}} gets the value and \cmd{tex.sprint()}'s it\\
-\cmd{\tbldef{i}{d}} pushes the value to a \cmd{cs} named \cmd{d}\\
+\cmd{\tbldef{i}{d}} pushes the value to macro \cmd{d}\\
+\cmd{\tbldefall{t}{d}} define all item in table \cmd{t} (use recent if blank) with format \cmd{d<key>}
 \cmd{\tblgdef{i}{d}} pushes the value to a global\\
 \cmd{\tbldefxy{i}{d}} splits the value of item by spaces creates two definitions \cmd{\dx} and \cmd{\dy}. Useful for pasing tikz coordinates like \cmd{xy=0 5}\\
+For definiting tables, if \cmd{d} is blank, commands are defined as \cmd{dtbl<t><k>}\\
 \cmd{\iftbl{i}{tr}[fa]} runs code \cmd{ta} if the item is true else \cmd{fr}\\
 \cmd{\iftblv{i}{tr}[fa]} runs code \cmd{ta} if the item is truthy else \cmd{fr}\\
 \cmd{\tblkvundefcheck} will throw an error if you use define a table from key-values
@@ -233,11 +255,17 @@ or simply use \cmd{ind} without the table name, where the assumed table is the l
 \tblifv{y}{tR}[fA]\\
 %% \kvtblundefcheck % would throw error
 \tbldef{my.first}{mydef} \mydef\\
+\tbldef{first}{}\dtblmyfirst\\
 {\tbldef{last}{mydef} \mydef} \mydef\\
 {\tblgdef{last}{mydef}} \mydef\\
 
+\tbldefall{}{}\dtblmyfirst\\
+\tbldefall{my}{DEF}\DEFfirst
+
 \tblset{my.a}{12 36}
 \tbldefxy{my.a}{coord} (\coordx,\coordy)
+\tbldefxy{my.a}{} (\dtblmyax,\dtblmyay)
+\tbldefxy{a}{} (\dtblmyax,\dtblmyay)
 
 \tblfrcsv{me}{a,b,"c,see",d,e}
 \tblget{me/1},\tblget{2}\\
@@ -249,17 +277,16 @@ or simply use \cmd{ind} without the table name, where the assumed table is the l
 \end{LTXexample}
 
 
-\tblfrcsv{me}{
-Hello=world,
+%\tblfrcsv{me}{
+%Hello=world,
+%
+%Bonjour=terre,
+%}
+%\tblget{Hello}
+%\tblget{Bonjour}
 
 
-Bonjour=terre,
-}
-\tblget{Hello}
-\tblget{Bonjour}
-
-
-Note: for thisf versions: all latex tbl commands are now prefixed with \cmd{tbl}, eg., \cmd{tblget}, \cmd{tblset}.
+Note: for this versions: all latex tbl commands are now prefixed with \cmd{tbl}, eg., \cmd{tblget}, \cmd{tblset}.
 Old-style commands eg. \cmd{gettbl} will be kept as aliases for a few more releases then removed.
 
 
@@ -313,5 +340,22 @@ You can do a similar string split but to \cmd{\item} instead of commas with \cmd
 %  }
 %
 %  \THINg[color=blue,size=tiny]{Kale}
-  
+%
+\begin{luacode*}
+function prttol()
+  local dec = penlight.tbls.tol[4] or 1
+  penlight.wrth(dec,'??')
+  penlight.tbls.tol[3] =  penlight.tbls.tol[3] or 3
+  penlight.tbls.tol[4] =  penlight.tbls.tol[1]*(1.0-penlight.tbls.tol[3]/100.0) + 0.0
+  penlight.tbls.tol[5] =  penlight.tbls.tol[1]*(1.0+penlight.tbls.tol[3]/100.0) + 0.0
+  penlight.tbls.tol['k'] = 'fuckboi'
+  penlight.wrth(('$k $1\\$2 (\\pmpct{$3} tolerance, $4\\ndash$5\\$2)'):fmt(penlight.tbls.tol, '4=.'..dec..'f, 5=.'..dec..'f'), 'XYZ')
+end
+\end{luacode*}
+\NewDocumentCommand{\prttol}{ m }{\tblfrcsv{tol}{#1}\luadirect{prttol()}}%  {50.0,kV,3,P}   % 50\us (\pmpct{20} tolerance, 40=--60\us), P is optional and precision of the range (number of decimals)
+
+\prttol{50,kV,3}
+
+
+
 \end{document}
