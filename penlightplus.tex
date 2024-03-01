@@ -1,6 +1,6 @@
 % Kale Ewasiuk (kalekje@gmail.com)
 % +REVDATE+
-% Copyright (C) 2021-2023 Kale Ewasiuk
+% Copyright (C) 2021-2024 Kale Ewasiuk
 %
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
@@ -35,11 +35,11 @@
 \setlength\ResultBoxRule{0mm}
 \lstset{
 	language=[LaTeX]TeX,
-	basicstyle=\ttfamily\small,
-	commentstyle=\ttfamily\small\color{gray},
+	basicstyle=\ttfamily\footnotesize,
+	commentstyle=\ttfamily\footnotesize\color{gray},
 	frame=none,
 	numbers=left,
-	numberstyle=\ttfamily\small\color{gray},
+	numberstyle=\ttfamily\footnotesize\color{gray},
 	prebreak=\raisebox{0ex}[0ex][0ex]{\color{gray}\ensuremath{\hookleftarrow}},
 	extendedchars=true,
 	breaklines=true,
@@ -53,7 +53,7 @@
 \date{\today}
 
 
-\RequirePackage{penlightplus}
+\RequirePackage[pl,globals]{penlightplus}
 
 \title{penlightplus}
 \subtitle{Additions to the Penlight Lua Libraries}
@@ -97,14 +97,28 @@ The gloals flags below are taken care of in the package options:\\
 \cmd{__PL_NO_HYPERREF__} a flag used to change the behaviour of a function, depending on if you don't use the hyperref package\\
 \cmd{__PDFmetadata__} a table used to store PDF meta-data
 
+
+\subsubsection*{global extras}
+If the package option \cmd{globals} is used, many additional globals are set for easier scripting.
+\cmd{pl.hasval},  \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals.
+\cmd{pl.tablex} is aliased as \cmd{pl.tbx and tbx} (which also includes all native Lua table functions), and
+\cmd{pl.array2d} is aliased as \cmd{pl.a2d and a2d}.
+
+If you want global \cmd{pl.tex} funcs and vars, call \cmd{pl.make_tex_global()}\\
+
+
 \subsubsection*{penlight additions}
 
 Some functionality is added to penlight and Lua.
 
 \llcmd{pl.hasval(x)} Python-like boolean testing\\
 \llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
+
+\cmd{clone_function(f)} returns a cloned function\\
+\cmd{operator.strgt(a,b)} compares strings a greater than b  (useful for sorting)\\
+\cmd{operator.strlt(a,b)} compares strings a less than b (useful for sorting)\\
+
 \llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
-\\
 
 \llcmd{string.}\cmd{upfirst(s)} uppercase first letter\\
 \llcmd{string.}\cmd{delspace(s)} delete all spaces\\
@@ -123,6 +137,16 @@ Some functionality is added to penlight and Lua.
 a few improvements. \cmd{t} can be an array (reference items like \cmd{\$1} in the string),
 and \cmd{fmt} can be a table of formats (keys correspond to those in \cmd{t}), or a string that
 is processed by luakeys.\\
+\llcmd{string.}\cmd{parsekv(s, opts)} parse a string using \cmd{penlight.luakeys}. A string or table can be used for opts.
+
+\llcmd{tablex.}\cmd{fmt(t, f)} format a table with table or key-value string f\\
+\llcmd{tablex.}\cmd{strinds(t)} convert integer indexes to string indices (1 -> '1')\\
+\llcmd{tablex.}\cmd{filterstr(t,e,case)} keep only values in table t that contain expression e, case insensitive by default.\\
+\llcmd{tablex.}\cmd{mapslice(f,t,i1,i2)} map a function to elements between i1 and i2\\
+\llcmd{tablex.}\cmd{listcontains(t,v)} checks if a value is in a array-style list \\
+
+
+
 
 \llcmd{pl.}\cmd{char(n)} return letter corresponding to 1=a, 2=b, etc.\\
 \llcmd{pl.}\cmd{Char(n)} return letter corresponding to 1=A, 2=B, etc.\\
@@ -156,16 +180,12 @@ to a package warning saying \cmd{'cs' was declared and used in document, but nev
 is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, it will throw error like \cmd{newcmd}.\\
 \llcmd{get_ref_info(l)}accesses the \cmd{\r@label} and returns a table\\
 
+\subsubsection*{Recording latex input}
+\cmd{penlight.tex.startrecording()} start recording input buffer without printing to latex\\
+\cmd{penlight.tex.stoprecording()} stop recording input buffer\\
+\cmd{penlight.tex.readbuf()} internal-use function that interprets the buffer. This will ignore an environment ending (eg. \cmd{end{envir}})\\\\
+\cmd{penlight.tex.recordedbuf} the string variable where the recorded buffer is stored\\
 
-
-\subsubsection*{global extras}
-If the package option \cmd{globals} is used, many additional globals are set for easier scripting.
-\cmd{pl.hasval},  \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals.
-\cmd{pl.tablex} is aliased as \cmd{pl.tbx and tbx} (which also includes all native Lua table functions), and
-\cmd{pl.array2d} is aliased as \cmd{pl.a2d and a2d}.
-
-If you want global \cmd{pl.tex} funcs and vars, call \cmd{pl.make_tex_global()}
-\\
 
 
 
@@ -224,18 +244,27 @@ no, once, twice, or full expansion. For example, we can control the expansion of
 \cmd{\tblchg{t}} changes the 'recent' table\\
 \cmd{\tblfrkv{t}{key-val string}[luakeys opts]} new table from key-vals using \cmd{luakeys} \\
 \cmd{\tblfrkvN{t}{key-val string}[luakeys opts]} does not expand key-val string \cmd{luakeys} \\
- \cmd{\tblfrcsv} a shorthand \cmd{\tblfrkv{t}{csv}[naked_as_value=true,opts]}, a good way to convert  a comma-separated list to an array\\
+\cmd{\tblfrkvCD{t}{key-val string}[luakeys opts]} define tbl from key-val,
+check if any were not defined as defaults (see below), and then push all to definitions\\
+\cmd{\tblkvundefcheck} will throw an error if you use define a table from key-values
+and use a key that was not specified in the luakeys parse options via \cmd{opts.defaults} or \cmd{opts.defs}.
+ \cmd{\tblfrcsv{t}{csv}} a shorthand \cmd{\tblfrkv{t}{csv}[naked_as_value=true,opts]}, a good way to convert  a comma-separated list to an array\\
+ \cmd{\tblfrcsvN{t}{csv}} same as above, but the csv is not expanded.
 \cmd{\tblset{i}{v}} sets a value of the table/index \cmd{i} to \cmd{v}\\
-\cmd{\tblget{i}} gets the value and \cmd{tex.sprint()}'s it\\
+\cmd{\tblget{i}} gets the value and \cmd{tex.sprint()}s it\\
+\cmd{\tbladd{i}{v}} add a new value to a table using index method\\
+\cmd{\tbladdN{i}{v}} above, but don't expand the value argument\\
+\cmd{\tblcon{t}{csv}} concatenate an array-style csv\\
+\cmd{\tblapp{t}{v}} append a value (integer-wise) to a table\\
 \cmd{\tbldef{i}{d}} pushes the value to macro \cmd{d}\\
-\cmd{\tbldefall{t}{d}} define all item in table \cmd{t} (use recent if blank) with format \cmd{d<key>}
-\cmd{\tblgdef{i}{d}} pushes the value to a global\\
+\cmd{\tbldefall{t}{d}} define all item in table \cmd{t} (use recent if blank) with format \cmd{d<key>} where d is your prefix. If d is blank, keys will be defined as \cmd{\dtbl<t><k>}
+\cmd{\tblgdef{i}{d}} pushes the defined value to a global\\
 \cmd{\tbldefxy{i}{d}} splits the value of item by spaces creates two definitions \cmd{\dx} and \cmd{\dy}. Useful for pasing tikz coordinates like \cmd{xy=0 5}\\
 For definiting tables, if \cmd{d} is blank, commands are defined as \cmd{dtbl<t><k>}\\
 \cmd{\iftbl{i}{tr}[fa]} runs code \cmd{ta} if the item is true else \cmd{fr}\\
 \cmd{\iftblv{i}{tr}[fa]} runs code \cmd{ta} if the item is truthy else \cmd{fr}\\
-\cmd{\tblkvundefcheck} will throw an error if you use define a table from key-values
-and use a key that was not specified in the luakeys parse options via \cmd{opts.defaults} or \cmd{opts.defs}.
+
+\cmd{\tblprt{t}} print the table in console
 
 There are 3 ways to use the index (placeholder \cmd{{i}} above).
 \cmd{t.key} where \cmd{t} is the table name and \cmd{key} is a string key,
@@ -249,6 +278,7 @@ or simply use \cmd{ind} without the table name, where the assumed table is the l
 \tblset{a}{tRuE!!}
 \tblget{a}\\
 \tblget{my.x}\\
+\tblget{.x}\\
 \tblif{n}{tr}[fa]\\
 \tblifv{n}{TR}[FA]\\
 \tblif{my.y}{Tr}[Fa]\\
@@ -270,10 +300,15 @@ or simply use \cmd{ind} without the table name, where the assumed table is the l
 \tblfrcsv{me}{a,b,"c,see",d,e}
 \tblget{me/1},\tblget{2}\\
 \tblget{3}\\
-\tblset{me/4}{D}\tblget{me/4}\\
+\tblset{me/4}{D}\tblget{me/4}\tblget{/4}\\
 \tblset{5}{E}\tblget{5}\\
 \tblget{-2},\tblget{me/-1}\\
+\tblget{/-3}\\
 %% \tblget{k} % would throw error
+
+\tblfrkvCD{M}{a=A,b=B,d=D}[defaults={a,b,c,d}]
+\dtblMa \dtblMb \dtblMc \dtblMd
+
 \end{LTXexample}
 
 
@@ -288,6 +323,38 @@ or simply use \cmd{ind} without the table name, where the assumed table is the l
 
 Note: for this versions: all latex tbl commands are now prefixed with \cmd{tbl}, eg., \cmd{tblget}, \cmd{tblset}.
 Old-style commands eg. \cmd{gettbl} will be kept as aliases for a few more releases then removed.
+
+
+\subsubsection*{A practical tbl example}
+
+\begin{LTXexample}
+\begin{luacode*}
+  function prt_pyth()
+  t = pl.tbls.pyth
+  if not t.a then
+    pl.tex.pkgerror('must pass a= to \\pyth')
+  elseif not t.b then
+    t.b = (tonumber(t.c)^2 -
+          tonumber(t.a)^2)^0.5
+  elseif not t.c then
+    t.c = (tonumber(t.a)^2 +
+          tonumber(t.b)^2)^0.5
+  end
+  local t = pl.tbx.fmt(t,'.'..t.d..'f') -- format table according to d decimals
+  s = 'Right-angle sides a=$a and b=$b form a hypotenuse of c=$c'
+  pl.tex.prt(s:fmt(t))
+  end
+\end{luacode*}
+\NewDocumentCommand{\pyth}{m}{%
+  \tblfrkv{pyth}{#1}[defaults={a=false,b=false,c=false,d=0,e=extras}]
+  \luadirect{prt_pyth()}%
+}
+
+\pyth{a=3,c=5}\\
+\pyth{a=3.2,b=4.2,d=2}\\
+C: \tblget{c}
+
+\end{LTXexample}
 
 
 \subsection*{Splitting strings}
@@ -317,8 +384,19 @@ You can do a similar string split but to \cmd{\item} instead of commas with \cmd
 
 
 
+\subsubsection*{PDF meta data (for pdfx package)}
+\cmd{\writePDFmetadatakv*{m}} Take a key-value string (eg. \cmd{title=whatever, author=me}) and writes to the \cmd{jobname.xmpdata} file, to be used by pdfx. \cmd{*} will first clear the data\\
+\cmd{\writePDFmetadata} runs the lua function \cmd{penlight.tex.writePDFmetadata()},
+which pushes the lua variable \cmd{__PDFmetadata__} (a table) to the xmpdata file.
 
 
+
+%\pyth{} % erro
+
+
+%\begin{luacode*}
+%  pl.tex.wrth(('a,b,c=3'):parsekv('!naked_as_value'), 'dumy')
+%\end{luacode*}
 
 %  \tblfrkv{tbl_def}{kale=cool,paul=gay,craig=fun}
 %  \tblfrkv{tbl}{kale,paul=gay} %[naked_as_value=true]
@@ -348,14 +426,18 @@ function prttol()
   penlight.tbls.tol[3] =  penlight.tbls.tol[3] or 3
   penlight.tbls.tol[4] =  penlight.tbls.tol[1]*(1.0-penlight.tbls.tol[3]/100.0) + 0.0
   penlight.tbls.tol[5] =  penlight.tbls.tol[1]*(1.0+penlight.tbls.tol[3]/100.0) + 0.0
-  penlight.tbls.tol['k'] = 'fuckboi'
-  penlight.wrth(('$k $1\\$2 (\\pmpct{$3} tolerance, $4\\ndash$5\\$2)'):fmt(penlight.tbls.tol, '4=.'..dec..'f, 5=.'..dec..'f'), 'XYZ')
+  --penlight.tbls.tol['k'] = 'fuckboi'
+  --ttt = pl.tbx.fmt(penlight.tbls.tol, '.3f')
+  penlight.wrth(('$1\\$2 (\\pmpct{$3} tolerance, $4\\ndash$5\\$2)'):fmt(penlight.tbls.tol, '4=.'..dec..'f, 5=.'..dec..'f'), 'XYZ')
 end
 \end{luacode*}
 \NewDocumentCommand{\prttol}{ m }{\tblfrcsv{tol}{#1}\luadirect{prttol()}}%  {50.0,kV,3,P}   % 50\us (\pmpct{20} tolerance, 40=--60\us), P is optional and precision of the range (number of decimals)
 
 \prttol{50,kV,3}
 
+\begin{luacode*}
+  pl.wrth(pl.filterfiles('.',true,'.*%.tex'), 'FF')
+\end{luacode*}
 
 
 \end{document}

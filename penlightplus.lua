@@ -1,6 +1,6 @@
 --% Kale Ewasiuk (kalekje@gmail.com)
 --% +REVDATE+
---% Copyright (C) 2021-2023 Kale Ewasiuk
+--% Copyright (C) 2021-2024 Kale Ewasiuk
 --%
 --% Permission is hereby granted, free of charge, to any person obtaining a copy
 --% of this software and associated documentation files (the "Software"), to deal
@@ -143,8 +143,9 @@ function penlight.tex.wrth(s1, s2) -- helpful printing, makes it easy to debug, 
     end
     wrt2('\n^^^^^\n')
 end
+penlight.wrth = penlight.tex.wrth
+penlight.tex.help_wrt = penlight.tex.wrth
 penlight.help_wrt = penlight.tex.wrth
-penlight.wrth = penlight.help_wrt
 
 function penlight.tex.prt_array2d(t)
     for _, r in ipairs(t) do
@@ -456,22 +457,18 @@ function str_mt.__index.subpar(s, r)
 end
 
 
-function str_mt.__index.fmt(s, t, fmt) -- format a $1 string with an array or table and formats
-    -- formats can be a luakeys string, or a table
-    fmt = fmt or {}
-    if type(fmt) == 'string' then
-        fmt = penlight.tablex.strinds(penlight.luakeys.parse(fmt, {naked_as_value=true}))
-    end
+function str_mt.__index.fmt(s, t, fmt) -- format a $1 and $k string with an array or table and formats
+    -- formats can be a luakeys string, or a table and are applied to table before string is formatted
     if type(t) ~= 'table' then t = {t} end
     t = penlight.tablex.strinds(t)
-    for k, f in pairs(fmt)  do -- apply formats
-        t[k] = string.format('%'..f, t[tostring(k)])
-    end
+    t = penlight.tablex.fmt(t, fmt, true)
     return s % t
 end
 
-
-
+function str_mt.__index.parsekv(s, t) -- parsekv string
+    if type(t) ~= 'table' then t = penlight.luakeys.parse(t) end
+    return penlight.luakeys.parse(s, t)
+end
 
 -- -- -- -- function stuff
 
@@ -532,6 +529,37 @@ function penlight.tablex.strinds(t) -- convert indices that are numbers to strin
 end
 
 
+function penlight.tablex.listcontains(t, v)
+    return penlight.tablex.find(t, v) ~= nil
+end
+
+
+-- format contents of a table
+function penlight.tablex.fmt(t, fmt, strinds)
+    if fmt == nil then
+        return t
+    end
+    strinds = strinds or false -- if your fmt table should use string indexes
+    if type(fmt) == 'string' then
+        if not fmt:find('=') then -- if no = assume format all same
+            for k, v in pairs(t) do -- apply same format to all
+                if tonumber(v) ~= nil then -- only apply to numeric values
+                    t[k] = string.format("%"..fmt, v)
+                end
+            end
+            return t
+        else
+            fmt = fmt:parsekv('naked_as_value') -- make fmt a table from keyval str
+        end
+    end
+    if strinds then fmt = penlight.tablex.strinds(fmt) end -- convert int inds to str inds
+    for k, f in pairs(fmt) do -- apply formatting to table
+        t[k] = string.format("%"..f, tostring(t[k]))
+    end
+    return t
+end
+
+
 function penlight.tablex.map_slice(func, T, j1, j2)
     if type(j1) == 'string' then
         return penlight.array2d.map_slice(func, {T}, ','..j1)[1]
@@ -556,24 +584,25 @@ function penlight.tablex.filterstr(t, exp, case)
     end
 end
 
-
+--todo add doc
 function penlight.utils.filterfiles(...)
     -- f1 is a series of filtering patterns, or condition
     -- f2 is a series of filtering patters, or condition
     -- (f1_a or f2_...) and (f2 .. ) must match
     local args = table.pack(...)
-    -- todo -- check where boolean is for recursive or not, set starting argument
+    -- dir, recursive[bool], filt1, filt2 etc...
+    -- OR recursive[bool], filt1, filt2, etc..
+    -- OR filt1, filt2, filt3, etc..
     -- this could allow one to omit dir
-    -- todo if no boolean at all, assume dir = '.' and r = false
-    -- if boolean given, assume dir = '.'
+    -- if boolean given ar arg 1, assume dir = '.'
     local nstart = 3
-    local r = args[2]
-    local dir = args[1]
+    local r = args[2] -- recursive
+    local dir = args[1] -- start dir
     if type(args[1]) == 'boolean' then
         dir = '.'
         r =  args[1]
         nstart = 2
-    elseif type(args[2]) ~= 'boolean' then
+    elseif type(args[2]) ~= 'boolean' then -- if boolean given ar arg 1, assume dir = '.'
         dir = '.'
         r =  false
         nstart = 1
@@ -588,7 +617,6 @@ function penlight.utils.filterfiles(...)
     end
     return  files
 end
-
 
 
 
@@ -808,6 +836,18 @@ function penlight.tex.split2items(s, d)
 end
 
 
+function penlight.toggle_luaexpr(expr)
+    if expr then
+      tex.sprint('\\toggletrue{luaexpr}')
+    else
+      tex.sprint('\\togglefalse{luaexpr}')
+    end
+end
+
+
+
+
+
 penlight.tbls = {}
 
 penlight.rec_tbl = ''
@@ -820,6 +860,11 @@ function penlight.get_tbl_name(s)
     return s
 end
 
+function penlight.get_tbl(s)
+    s = penlight.get_tbl_name(s)
+    return penlight.tbls[s]
+end
+
 function penlight.get_tbl_index(s)
     local tbl = ''
     local key = ''
@@ -830,6 +875,7 @@ function penlight.get_tbl_index(s)
     elseif s:find('/') then
         local tt = s:split('/')
         tbl = tt[1]
+        if tbl == '' then tbl = penlight.rec_tbl end
         key = tonumber(tonumber(tt[2]))
         if key < 0 then key = #penlight.tbls[tbl]+1+key end
     else
@@ -837,6 +883,7 @@ function penlight.get_tbl_index(s)
         key = tonumber(s) or s
         if type(key) == 'number' and key < 0 then key = #penlight.tbls[tbl]+1+key end
     end
+    if tbl == '' then tbl = penlight.rec_tbl end
     if penlight.tbls[tbl] == nil or penlight.tbls[tbl][key] == nil then
         penlight.tex.pkgerror('penlightplus',  'Invalid index of tbl using: "'..s..'"')
     end
@@ -881,6 +928,20 @@ function penlight.check_recent_tbl_undefault()
     end
 end
 
+function penlight.def_tbl(ind, def, g)
+  local _tbl, _key = penlight.get_tbl_index(ind)
+  if def == '' then def = 'dtbl'.._tbl.._key end
+  token.set_macro(def, tostring(penlight.tbls[_tbl][_key]), g)
+end
+
+function penlight.def_tbl_all(ind, def)
+    local _tbl = penlight.get_tbl_name(ind)
+    if def == '' then def = 'dtbl'.._tbl end
+    for k, v in pairs(penlight.tbls[_tbl]) do
+        token.set_macro(def..k, tostring(v))
+  end
+end
+
 -- TODO TODO TODO get error working xy def, and referene which table for key-vals
 penlight.tbl_xysep = '%s+' -- spaces separate x-y coordinates
 function penlight.def_tbl_coords(ind, def)
@@ -896,7 +957,14 @@ function penlight.def_tbl_coords(ind, def)
 end
 
 
---
+
+
+
+
+
+
+
+-- global setting type stuff
 
 function penlight.make_tex_global()
     for k,v in pairs(penlight.tex) do  -- make tex functions global

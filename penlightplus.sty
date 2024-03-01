@@ -1,6 +1,6 @@
 % Kale Ewasiuk (kalekje@gmail.com)
 % +REVDATE+
-% Copyright (C) 2021-2023 Kale Ewasiuk
+% Copyright (C) 2021-2024 Kale Ewasiuk
 %
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
@@ -84,22 +84,16 @@
 \newtoggle{luaexpr}\togglefalse{luaexpr}
 
 \begin{luacode*}
-  function toggle_luaexpr(expr)
-    if expr then
-      tex.sprint('\\toggletrue{luaexpr}')
-    else
-      tex.sprint('\\togglefalse{luaexpr}')
-    end
-  end
+
 \end{luacode*}
 
-\NewDocumentCommand{\ifluax}{m m O{}}{%
-  \luadirect{toggle_luaexpr(#1)}%
+\NewDocumentCommand{\ifluax}{m m O{}}{% if lua expression is true do {m} if not [o]
+  \luadirect{penlight.toggle_luaexpr(#1)}%
   \iftoggle{luaexpr}{#2}{#3}%
   \togglefalse{luaexpr}% safety set to false
 }
 
-\NewDocumentCommand{\ifluaxv}{m m O{}}{\ifluax{penlight.hasval(#1)}{#2}[#3]}
+\NewDocumentCommand{\ifluaxv}{m m O{}}{\ifluax{penlight.hasval(#1)}{#2}[#3]}% if lua expression is truthy do {m} else [o]
 
 
 
@@ -116,6 +110,10 @@
   penlight.rec_tbl = \luastring{#1}
 }}
 
+\NewDocumentCommand{\tblfrkvCD}{m +m O{}}{\tblfrkv{#1}{#2}[#3]\tblkvundefcheck\tbldefall{}{}}
+%% tbl from key-vals, then check defaults, then define all keys using default format
+\NewDocumentCommand{\tblfrkvNCD}{m +m O{}}{\tblfrkvN{#1}{#2}[#3]\tblkvundefcheck\tbldefall{}{}}
+
 \NewDocumentCommand{\tblfrkvN}{m +m O{}}{\luadirect{%
   penlight.rec_tbl_opts = penlight.luakeys.parse(\luastring{#3})
   penlight.tbls[\luastring{#1}] = penlight.luakeys.parse(string.subpar(\luastringN{#2}), penlight.rec_tbl_opts)
@@ -124,8 +122,37 @@
 
 \NewDocumentCommand{\tblfrcsv}{m +m O{}}{\tblfrkv{#1}{#2}[naked_as_value=true,#3]}
 
+\NewDocumentCommand{\tblfrcsvN}{m +m O{}}{\tblfrkvN{#1}{#2}[naked_as_value=true,#3]}
+
 
 \NewDocumentCommand{\tblkvundefcheck}{}{\luadirect{penlight.check_recent_tbl_undefault()}}% check defaults list and throw error if foreign keys were used
+
+
+
+\NewDocumentCommand{\tblapp}{m m}{\luadirect{% append to a table (ie using integer index)  with a value (second arg) # todo option for string or number
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  table.insert(penlight.tbls[__tbl__], \luastring{#2})
+}}
+
+\NewDocumentCommand{\tblcon}{m m}{\luadirect{% concatenate to a table (ie using integer index)  with a  list of comma separated values (second arg) #
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  for k, v in ipairs(penlight.luakeys.parse(string.subpar(\luastring{#2}), {naked_as_value=true})) do
+    table.insert(penlight.tbls[__tbl__], v)
+  end
+}}
+
+\NewDocumentCommand{\tbladd}{m m m}{\luadirect{% add a kv pair to a table
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  penlight.tbls[__tbl__][\luastring{#2}] = \luastring{#3}
+}}
+
+\NewDocumentCommand{\tbladdN}{m m m}{\luadirect{% add a kv pair to a table
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  penlight.tbls[__tbl__][\luastring{#2}] = \luastringN{#3}
+}}
+
+
+
 
 \NewDocumentCommand{\tblchg}{ m }{\luadirect{% change recent table
   penlight.rec_tbl = \luastring{#1}
@@ -140,31 +167,13 @@
   penlight.set_tbl_item(\luastring{#1}, \luastring{#2})
 }}
 
-% todo if no definition is provided, assume <tblname><key>
-\NewDocumentCommand{\tbldef}{ m m }{\luadirect{% define a {table key}{def}
-  local _tbl, _key = penlight.get_tbl_index(\luastring{#1})
-  local _tbl_def_ = \luastring{#2}
-  if _tbl_def_ == '' then _tbl_def_ = 'dtbl'.._tbl.._key end
-  token.set_macro(_tbl_def_, tostring(penlight.tbls[_tbl][_key]))
-}}
 
-\NewDocumentCommand{\tbldefall}{ m m }{\luadirect{% define all {table} keys to {table} \table<key1>
-   % todo maybe change tbldef {def} to [def] and make same as table name
-    local _tbl = penlight.get_tbl_name(\luastring{#1})
-    local _tbl_def_ = \luastring{#2}
-     if _tbl_def_ == '' then _tbl_def_ = 'dtbl'.._tbl end
-   for k, v in pairs(penlight.tbls[_tbl]) do
-    token.set_macro(_tbl_def_..k, tostring(v))
-  end
-}}
+\NewDocumentCommand{\tbldef}{ m m }{\luadirect{penlight.def_tbl(\luastring{#1}, \luastring{#2})}}
 
+% define a table, use * to make global definition
+\NewDocumentCommand{\tblgdef}{ m m }{\luadirect{penlight.def_tbl(\luastring{#1}, \luastring{#2}, 'global')}}
 
-\NewDocumentCommand{\tblgdef}{ m m }{\luadirect{% define a table, use * to make global definition
-  local _tbl, _key = penlight.get_tbl_index(\luastring{#1})
-  local _tbl_def_ = \luastring{#2}
-  if _tbl_def_ == '' then _tbl_def_ = 'dtbl'.._tbl.._key end
-  token.set_macro(_tbl_def_, tostring(penlight.tbls[_tbl][_key]), 'global')
-}}
+\NewDocumentCommand{\tbldefall}{ m m }{\luadirect{penlight.def_tbl_all(\luastring{#1}, \luastring{#2})}}
 
 \NewDocumentCommand{\tbldefxy}{ m m }{\luadirect{penlight.def_tbl_coords(\luastring{#1}, \luastring{#2})}}% define #2x and #2y from a space delimited x-y pair
 
@@ -172,6 +181,7 @@
 
 \NewDocumentCommand{\tblifv}{m m O{}}{\ifluaxv{penlight.get_tbl_item(\luastring{#1})}{#2}[#3]}
 
+\NewDocumentCommand{\tblprt}{m}{\luadirect{penlight.wrth(penlight.get_tbl(\luastring{#1}),'penlightplus table: '..\luastring{#1})}}
 
 % legacy code, delete this
 \let\kvtblundefcheck\tblkvundefcheck
