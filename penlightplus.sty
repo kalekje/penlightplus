@@ -141,14 +141,14 @@
   end
 }}
 
-\NewDocumentCommand{\tbladd}{m m m}{\luadirect{% add a kv pair to a table
-  __tbl__ = penlight.get_tbl_name(\luastring{#1})
-  penlight.tbls[__tbl__][\luastring{#2}] = \luastring{#3}
+\NewDocumentCommand{\tbladd}{m m}{\luadirect{% add a kv pair to a table
+  __tbl__, __key__ = penlight.get_tbl_index(\luastring{#1}, true)
+  penlight.tbls[__tbl__][__key__] = \luastring{#2}
 }}
 
 \NewDocumentCommand{\tbladdN}{m m m}{\luadirect{% add a kv pair to a table
-  __tbl__ = penlight.get_tbl_name(\luastring{#1})
-  penlight.tbls[__tbl__][\luastring{#2}] = \luastringN{#3}
+  __tbl__, __key__ = penlight.get_tbl_index(\luastring{#1}, true)
+  penlight.tbls[__tbl__][__key__] = \luastringN{#2}
 }}
 
 
@@ -183,8 +183,22 @@
 
 \NewDocumentCommand{\tblprt}{m}{\luadirect{penlight.wrth(penlight.get_tbl(\luastring{#1}),'penlightplus table: '..\luastring{#1})}}
 
+
+
+
 % legacy code, delete this
 \let\kvtblundefcheck\tblkvundefcheck
+
+\NewDocumentCommand{\tbladdo}{m m m}{\luadirect{% add a kv pair to a table
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  penlight.tbls[__tbl__][\luastring{#2}] = \luastring{#3}
+}}
+
+\NewDocumentCommand{\tbladdNo}{m m m}{\luadirect{% add a kv pair to a table
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  penlight.tbls[__tbl__][\luastring{#2}] = \luastringN{#3}
+}}
+
 \let\chgtbl\tblchg
 \let\newtbl\tblnew
 \let\gettbl\tblget

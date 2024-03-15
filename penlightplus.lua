@@ -32,10 +32,15 @@ __PL_SKIP_TEX__ = __PL_SKIP_TEX__ or false --if declared true before here, it wi
 __PL_GLOBALS__ = __PL_GLOBALS__ or false
 __PL_NO_HYPERREF__ = __PL_NO_HYPERREF__ or false
 
-
 penlight.luakeys = require'luakeys'()
 
-penlight.COMP = require'pl.comprehension'.new() -- for comprehensions
+penlight.debug_available = false -- check if penlight debug package is available
+if debug ~= nil then
+  if type(debug.getinfo) == 'function' then
+   penlight.debug_available = true
+  end
+end
+
 
 -- http://lua-users.org/wiki/SplitJoin -- todo read me!!
 
@@ -719,17 +724,22 @@ function penlight.array2d.parse_numpy2d_str(s)
 end
 
 
-local _parse_range = penlight.clone_function(penlight.array2d.parse_range)
 
-function penlight.array2d.parse_range(s) -- edit parse range to do numpy string if no letter passed
-    penlight.utils.assert_arg(1,s,'string')
-    if not s:find'%a' then
-        return penlight.array2d.parse_numpy2d_str(s)
+if not penlight.debug_available then
+    penlight.tex.pkgwarn('penlight', 'lua debug library is not available, recommend re-compiling with the --luadebug option')
+else
+     penlight.COMP = require'pl.comprehension'.new() -- for comprehensions
+
+    local _parse_range = penlight.clone_function(penlight.array2d.parse_range)
+
+    function penlight.array2d.parse_range(s) -- edit parse range to do numpy string if no letter passed
+        penlight.utils.assert_arg(1,s,'string')
+        if not s:find'%a' then
+            return penlight.array2d.parse_numpy2d_str(s)
+        end
+        return _parse_range(s)
     end
-    return _parse_range(s)
 end
-
-
 
 
 
@@ -865,9 +875,11 @@ function penlight.get_tbl(s)
     return penlight.tbls[s]
 end
 
-function penlight.get_tbl_index(s)
+function penlight.get_tbl_index(s, undec)
+    undec = undec or false -- flag for allowing undeclared indexing
     local tbl = ''
     local key = ''
+    local s_raw = s
     if s:find('%.') then
         local tt = s:split('.')
         tbl = tt[1]
@@ -884,8 +896,9 @@ function penlight.get_tbl_index(s)
         if type(key) == 'number' and key < 0 then key = #penlight.tbls[tbl]+1+key end
     end
     if tbl == '' then tbl = penlight.rec_tbl end
-    if penlight.tbls[tbl] == nil or penlight.tbls[tbl][key] == nil then
-        penlight.tex.pkgerror('penlightplus',  'Invalid index of tbl using: "'..s..'"')
+
+    if (penlight.tbls[tbl] == nil) or ((not undec) and (penlight.tbls[tbl][key] == nil)) then
+        penlight.tex.pkgerror('penlightplus',  'Invalid tbl index attempt using: "'..s_raw..'". We tried to use tbl: "' ..tbl..'" and key: "'..key..'"')
     end
     return tbl, key
 end
