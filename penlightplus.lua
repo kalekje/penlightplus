@@ -857,6 +857,21 @@ end
 
 
 
+function penlight.caseswitch(s, c, kv)
+    local kvtbl = penlight.luakeys.parse(kv)
+    local sw = kvtbl[c] -- the returned switch
+    if sw == nil then -- if switch not found
+      if s == penlight.tex.xTrue then -- if star, throw error
+        pl.tex.pkgerror('penlight', 'case: "'..c..'" not found in key-vals: "'..kv..'"')
+        sw = ''
+      else
+        sw = kvtbl['__'] or '' -- use __ as not found case
+      end
+     end
+    tex.sprint(sw)
+end
+
+
 
 penlight.tbls = {}
 

@@ -59,7 +59,6 @@
 \subtitle{Additions to the Penlight Lua Libraries}
 
 
-
 \begin{document}
 %
 
@@ -222,7 +221,7 @@ no, once, twice, or full expansion. For example, we can control the expansion of
 %\luastringExpTest{ n o t f }{\NOTexp}
 
 
-\subsection*{Lua boolean expressions for LaTeX conditionals}
+\subsection*{Lua boolean expressions and a case-switch for conditionals}
 
 \cmd{\ifluax{<Lua expr>}{<do if true>}[<do if false>]} and\\ \cmd{\ifluax{<Lua expr>}{<do if true>}[<do if false>]} for truthy (uses \cmd{penlight.hasval})
 
@@ -233,6 +232,17 @@ no, once, twice, or full expansion. For example, we can control the expansion of
 \ifluax{''}{TRUE}[FALSE]\\
 \ifluaxv{''}{true}[false]\\
 \end{LTXexample}
+
+\cmd{\caseswitch{case}{kev-val choices}} The starred version will throw an error if the case is not found.
+Use \_\_ as a placeholder for a case that isn't matched.
+
+\begin{LTXexample}[width=0.3\linewidth]
+\def\caseswitchexample{\caseswitch{\mycase}{dog=DOG, cat=CAT, __=INVALID}}
+\def\mycase{dog} \caseswitchexample \\
+\def\mycase{human} \caseswitchexample
+\end{LTXexample}
+%\caseswitch*{\mycase}{dog=DOG, cat=CAT, __=INVALID}
+
 
 \subsection*{Creating and using Lua tables in LaTeX}
 \cmd{penlightplus} provides a Lua-table interface. Tables are stored in the

@@ -97,6 +97,18 @@
 
 
 
+
+
+
+\NewDocumentCommand{\caseswitch}{s m +m}{\ignorespaces\luadirect{penlight.caseswitch(\luastring{#1},\luastring{#2},\luastringN{#3})}\unskip}
+% argument 1 is star option, which throws an error if case is not found
+% argument 2 is the case, fully expanded
+% argument 3 is a luakeys table of options, not expanded
+
+
+
+
+
 %%% tbls below
 
 \NewDocumentCommand{\tblnew}{m}{\luadirect{% initialize a tbl and set blank
