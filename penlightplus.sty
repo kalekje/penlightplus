@@ -28,6 +28,8 @@
 \RequirePackage{luakeys}
 \RequirePackage[import]{penlight}
 \RequirePackage{etoolbox}
+\RequirePackage{tokcycle}
+
 
 \DeclareOption{globals}{\luadirect{__PL_GLOBALS__ = true}}
 \DeclareOption{pl}{\directlua{pl = penlight}}
@@ -40,22 +42,36 @@
 
 \global\newcommand{\writePDFmetadata}{\luadirect{penlight.tex.writePDFmetadata()}}
 
-\NewDocumentCommand{\writePDFmetadatakv}{ s m }{
+\NewDocumentCommand{\writePDFmetadatakv}{ s O{f} m }{%
+\MakeluastringCommands[f]{#2}%
 \IfBooleanTF{#1}{% if *, overwrite everything
   \luadirect{
-    __PDFmetadata__ = penlight.luakeys.parse(\luastring{#2})
-      penlight.tex.writePDFmetadata()
+    __PDFmetadata__ = penlight.tex.makePDFtablekv(\plluastringA{#3})
   }}{
     \luadirect{
     __PDFmetadata__ = __PDFmetadata__ or {}
-    penlight.tablex.update(__PDFmetadata__, penlight.luakeys.parse(\luastring{#2}))
-    penlight.tex.writePDFmetadata()
-  }}
+    penlight.tablex.update(__PDFmetadata__, penlight.tex.makePDFtablekv(\plluastringA{#3}))
+  }}%
+  \writePDFmetadata{}%
 }
 
 
 \gdef\luastringT#1{\luastring{\unexpanded\expandafter\expandafter\expandafter{#1}}}  % expand luastring twice
 \global\let\luastringF\luastring  % fully expanded luastring
+
+
+\xtokcycleenvironment\luastringeenv
+  {\addcytoks{##1}}
+  {\processtoks{##1}}
+  {\addcytoks[1]{##1}}
+  {\addcytoks{##1}}
+  {}
+  {\cytoks\expandafter{\expandafter\luastringO\expandafter{\the\cytoks}}}
+
+\def\luastringE#1{\luastringeenv#1\endluastringeenv}
+%\gdef\luastringE#1{\begin{luastringeenv#1\endluastringeenv}
+
+
 
 % allow control over expansion of arguments to a latex function
 \NewDocumentCommand{\MakeluastringCommands}{O{} m }{% #1 the desired commands #2 defaults
@@ -146,9 +162,24 @@
   table.insert(penlight.tbls[__tbl__], \luastring{#2})
 }}
 
+
+\NewDocumentCommand{\tblappN}{m m}{\luadirect{% append to a table (ie using integer index)  with a value (second arg) # todo option for string or number
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  table.insert(penlight.tbls[__tbl__], \luastringN{#2})
+}}
+
+
 \NewDocumentCommand{\tblcon}{m m}{\luadirect{% concatenate to a table (ie using integer index)  with a  list of comma separated values (second arg) #
   __tbl__ = penlight.get_tbl_name(\luastring{#1})
   for k, v in ipairs(penlight.luakeys.parse(string.subpar(\luastring{#2}), {naked_as_value=true})) do
+    table.insert(penlight.tbls[__tbl__], v)
+  end
+}}
+
+
+\NewDocumentCommand{\tblconN}{m m}{\luadirect{% concatenate to a table (ie using integer index)  with a  list of comma separated values (second arg) #
+  __tbl__ = penlight.get_tbl_name(\luastring{#1})
+  for k, v in ipairs(penlight.luakeys.parse(string.subpar(\luastringN{#2}), {naked_as_value=true})) do
     table.insert(penlight.tbls[__tbl__], v)
   end
 }}
@@ -177,6 +208,10 @@
 
 \NewDocumentCommand{\tblset}{m m}{\luadirect{% set item with {value}
   penlight.set_tbl_item(\luastring{#1}, \luastring{#2})
+}}
+
+\NewDocumentCommand{\tblsetN}{m m}{\luadirect{% set item with {value}
+  penlight.set_tbl_item(\luastring{#1}, \luastringN{#2})
 }}
 
 

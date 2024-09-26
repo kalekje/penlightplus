@@ -295,7 +295,7 @@ function penlight.tex.aliasluastring(s, d)
     s = s:delspace():upper():tolist()
     d = d:delspace():upper():tolist()
     for i, S in penlight.seq.enum(d:slice_assign(1,#s,s)) do
-        if (S == 'E') or (S == 'F') then S = '' end  -- E or F is fully expanded
+        if (S == 'F') then S = '' end  -- F is fully expanded
         penlight.tex.prtn('\\let\\plluastring'..penlight.Char(i)..'\\luastring'..S)
     end
 end
@@ -495,6 +495,85 @@ end
 
 
 
+
+
+
+
+
+
+
+-- -- -- -- -- -- -- -- -- -- -- --  functions below extend the seq module
+
+
+function penlight.seq.check_neg_index(i, len, fallback)
+i = tostring(i):delspace()
+if i == '' then return fallback end
+i = tonumber(i)
+if i == nil then
+  local _ = 1*'"Attempted to use seqstr indexing with negative number, but length of list not provided"'
+  return fallback -- fallback is the number to fall back on if i isn't provided
+end
+len = tonumber(len)
+if i < 0 then
+    if len == nil then
+      local _ = 1*'"Attempted to use seqstr indexing with negative number, but length of list not provided"'
+      return pl.utils.raise("Attempted to use seqstr indexing with negative number, but length of list not provided")
+    end
+  i = len + 1 + i -- negative index
+end
+return i
+end
+
+penlight.seq.train_element_sep = ','
+penlight.seq.train_range_sep = ':'
+
+function penlight.seq.train(s, len)
+    -- parse a range given a string indexer
+    -- syntax is: s = 'i1, i2, r1:r2'  where i1 and i2 are individual indexes.
+    -- r1:r2 is a range (inclusive).
+    -- a 'stride' can be given to ranges, eg. ::2 is 1,3,5,..., or 2::3 is 2,5,8,...
+    -- negative numbers can be used to index relative to the length of the table, eg, -1 -> len
+    -- if length is not given, negative indeing cannot be used
+    -- returns a penlight list of numbers
+
+    local t = penlight.List() -- list of indexes
+    local check_neg = penlight.seq.check_neg_index
+    for _, r in ipairs(s:split(penlight.seq.train_element_sep)) do
+      if r:find(penlight.seq.train_range_sep) then
+        r = r:split(penlight.seq.train_range_sep) -- if it's a range
+        t:extend(penlight.List.range(check_neg(r[1], len, 1),
+                               check_neg(r[2], len, len),
+                               tonumber(r[3])))
+      else
+        t:append(check_neg(r, len))
+      end
+    end
+    return t
+end
+
+function penlight.seq.itrain(s, len)
+-- iterator version of sequence-string
+    local t = penlight.seq.train(s, len)
+    local i = 0
+  return function ()
+      i = i + 1
+      if i <= #t then return t[i] end
+  end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- -- -- -- -- -- -- -- -- -- -- --  functions below extend the operator module
 
 function penlight.operator.strgt(a,b) return tostring(a) > tostring(b) end
@@ -514,8 +593,6 @@ local function comp_2ele_func(op, ele) -- make a 2 element comparison function,
     --sort with function on element nnum
     return bind(compare_elements, _1, _2, op, ele)
 end
-
-
 
 
 
@@ -772,35 +849,47 @@ __PDFmetadata__ = {}
 penlight.tex.add_xspace_intext = true
 
 
-function penlight.tex.updatePDFtable(k, v, o) -- key val overwrite
-    k = k:upfirst()
-    if penlight.hasval(o) or (__PDFmetadata__[k] == nil) then
-        __PDFmetadata__[k] = v
+function penlight.tex.checkPDFkey(k)
+    k = k:delspace():upfirst()
+    local keys_allowed = 'Title Author Subject Date Language Keywords Publisher Copyright CopyrightURL Copyrighted Owner CertificateURL Coverage PublicationType Relation Source Doi ISBN URLlink Journaltitle Journalnumber Volume Issue Firstpage Lastpage CoverDisplayDate CoverDate Advisory BaseURL Identifier Nickname Thumbnails '
+    if not keys_allowed:find(k ..' ') then
+        penlight.tex.pkgerror('penlightplus', 'invalid PDF metadata key assigned "'..k..'"')
     end
+    return k
 end
+
+function penlight.tex.makePDFtablekv(kv)
+    local t_new = {}
+    for k, v in pairs(penlight.luakeys.parse(kv)) do
+       k = penlight.tex.checkPDFkey(k)
+       v = penlight.tex.makePDFvarstr(v)
+       t_new[k] = v
+    end
+    return t_new
+end
+
 
 penlight.tex.writePDFmetadata = function(t) -- write PDF metadata to xmpdata file
   t = t or __PDFmetadata__
   local str = ''
   for k, v in pairs(t) do
-    k = k:upfirst()
     str = str..'\\'..k..'{'..v..'}'..'\n'
   end
   penlight.utils.writefile(tex.jobname..'.xmpdata', str)
 end
 
 
-
-function penlight.tex.clear_cmds_str(s)
-    return s:gsub('%s+', ' '):gsub('\\\\',' '):gsub('\\%a+',''):gsub('{',' '):gsub('}',' '):gsub('%s+',' '):strip()
-end
-
 function penlight.tex.makePDFvarstr(s)
     s = s:gsub('%s*\\sep%s+','\0'):gsub('%s*\\and%s+','\0')  -- turn \and into \sep
+    -- todo preserve \%, \{, \}, \backslash, and \copyright
     s = penlight.tex.clear_cmds_str(s)
     s = s:gsub('\0','\\sep ')
     --penlight.tex.help_wrt(s,'PDF var string')
     return s
+end
+
+function penlight.tex.clear_cmds_str(s)
+    return s:gsub('%s+', ' '):gsub('\\\\',' '):gsub('\\%a+',''):gsub('{',' '):gsub('}',' '):gsub('%s+',' '):strip()
 end
 
 function penlight.tex.makeInTextstr(s)
@@ -877,6 +966,11 @@ penlight.tbls = {}
 
 penlight.rec_tbl = ''
 penlight.rec_tbl_opts = {}
+
+
+function penlight.tbl(s)
+    return penlight.get_tbl_item(s)
+end
 
 function penlight.get_tbl_name(s)
     if s == '' then
@@ -1041,117 +1135,4 @@ if penlight.hasval(__PL_GLOBALS__) then
     tbx = penlight.tablex
 end
 
-
-
-
--- graveyard
-
-    --_xTrue = penlight.tex._xTrue
-    --_xFalse = penlight.tex._xFalse
-    --_xNoValue = penlight.tex._xNoValue
-    --
-    --prt = penlight.tex.prt
-    --prtn = penlight.tex.prtn
-    --wrt = penlight.tex.wrt
-    --wrtn = penlight.tex.wrtn
-    --
-    --prtl = penlight.tex.prtl
-    --prtt = penlight.tex.prtt
-    --
-    --help_wrt = penlight.tex.help_wrt
-    --prt_array2d = penlight.tex.prt_array2d
-    --
-    --pkgwarn = penlight.tex.pkgwarn
-    --pkgerror = penlight.tex.pkgerror
-    --
-    --defcmd = penlight.tex.defcmd
-    --prvcmd = penlight.tex.prvcmd
-    --newcmd = penlight.tex.newcmd
-    --renewcmd = penlight.tex.renewcmd
-    --deccmd = penlight.tex.deccmd
-    --
-    --_NumBkts = penlight.tex._NumBkts
-    --opencmd = penlight.tex.opencmd
-    --reset_bkt_cnt = penlight.tex.reset_bkt_cnt
-    --add_bkt_cnt = penlight.tex.add_bkt_cnt
-    --close_bkt_cnt = penlight.tex.close_bkt_cnt
-
-
--- graveyard
-
-
--- luakeys parses individual keys as ipairs, this changes the list to a pure map
---function penlight.luakeystomap(t)
---    local t_new = {}
---    for k, v in pairs(t) do
---        if type(k) == 'number' then
---            t_new[v] = true
---        else
---            t_new[k] = v
---        end
---    end
---    return t_new
---end
---if luakeys then -- if luakeys is already loaded
---    function luakeys.parseN(s, ...)
---        local t = luakeys.parse(s,...)
---        t = penlight.luakeystomap(t)
---        return t
---    end
---end
--- might not be needed
-
-
-    --local func = check_func(func)
---local function check_func(func)  -- check if a function is a PE, if so, make it a function
---    if type(func) ~= 'function' then
---        return I(func)
---    end
---    return func
---end
-
--- -- -- -- -- -- --
--- -- -- --  functions below extend the array2d module
-
-
---function penlight.array2d.map_slice1(func, L, i1, i2) -- map a function to a slice of an array, can use PlcExpr
---    i2 = i2 or i1
---    local len = #L
---    i1 = check_index(i1, len)
---    i2 = check_index(i2, len)
---    func = check_func(func)
---    for i in penlight.seq.range(i1,i2) do
---            L[i] = func(L[i])
---        end
---   return L
---end
-
-    -- used this below when iter was not working..
-    --i1, j1, i2, j2 = check_slice(M, i1, j1, i2, j2)
-        --for i in penlight.seq.range(i1,i2) do
-    --    for j in penlight.seq.range(j1,j2) do
-        --end
-    -- penlight may have fixed this
---local function check_index(ij, rc) -- converts array index to positive value if negative
---    if type(ij) ~= 'number' then
---        return 1
---    else
---        if ij < 0 then
---            ij = rc + ij + 1
---        elseif ij > rc then
---            ij = rc
---        elseif ij == 0 then
---            ij = 1
---        end
---        return ij
---    end
---end
---local function check_slice(M, i1, j1, i2, j2) -- ensure a slice is valid; i.e. all positive numbers
---    r, c = penlight.array2d.size(M)
---    i1 = check_index(i1 or 1, r)
---    i2 = check_index(i2 or r, r)
---    j1 = check_index(j1 or 1, c)
---    j2 = check_index(j2 or c, c)
---    return i1, j1, i2, j2
---end
 
