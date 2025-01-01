@@ -1,6 +1,6 @@
 --% Kale Ewasiuk (kalekje@gmail.com)
 --% +REVDATE+
---% Copyright (C) 2021-2024 Kale Ewasiuk
+--% Copyright (C) 2021-2025 Kale Ewasiuk
 --%
 --% Permission is hereby granted, free of charge, to any person obtaining a copy
 --% of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,8 @@ if debug ~= nil then
 end
 
 
+
+
 -- http://lua-users.org/wiki/SplitJoin -- todo read me!!
 
 penlight.tex = {} -- adding a sub-module for tex related stuff
@@ -62,6 +64,17 @@ function penlight.hasval(x)  -- if something has value
         end
     end
     return true
+end
+
+
+
+function penlight._Gdot(s)
+    -- return a global with nots
+    o = _G
+    for _, a in ipairs(s:split('.')) do
+        o = o[a]
+    end
+    return o
 end
 
 
@@ -182,6 +195,18 @@ function penlight.tex.pkgerror(pkg, msg1, msg2, stop)
 end
 
 
+if not penlight.debug_available then
+    penlight.tex.pkgwarn('penlight', 'lua debug library is not available, recommend re-compiling with the --luadebug option')
+end
+
+
+function penlight.tex.errorif(exp, pkg, msg1, msg2, stop)
+    if penlight.hasval(exp) then
+        penlight.tex.pkgerror(pkg, msg1, msg2, stop)
+    end
+end
+
+
 --definition helpers -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 function penlight.tex.defmacro(cs, val, g) -- , will not work if val contains undefined tokens (so pre-define them if using..)
@@ -264,6 +289,8 @@ end
 
 -- when nesting commands, this makes it helpful to not worry about brackets
 penlight.tex._NumBkts = 0
+penlight.tex._EndEnvs = {}
+
 --prt(opencmd('textbf')..opencmd('texttt')..'bold typwriter'..close_bkt_cnt())
 
 function penlight.tex.opencmd(cmd)
@@ -287,6 +314,24 @@ function penlight.tex.close_bkt_cnt(n)
     local s = ('}'):rep(n)
     _NumBkts = _NumBkts - n
     return s
+end
+
+
+
+
+
+function penlight.tex.openenv(env, opt)
+  if opt == nil then opt = '' else opt = '['..opt..']' end
+  tex.sprint('\\begin{' .. env .. '}'..opt)
+  table.insert(penlight.tex._EndEnvs, 1, '\\end{'..env..'}')
+end
+
+function penlight.tex.closeenv(num)
+  num = num or #penlight.tex._EndEnvs
+  for i=1, num do
+    tex.sprint(penlight.tex._EndEnvs[1])
+    table.remove(penlight.tex._EndEnvs, 1)
+  end
 end
 
 
@@ -371,11 +416,11 @@ local number = P{"number",
 
 
 function penlight.char(num)
-  return string.char(string.byte("a")+num-1)
+  return string.char(string.byte("a")+tonumber(num)-1)
 end
 
 function penlight.Char(num)
-  return string.char(string.byte("A")+num-1)
+  return string.char(string.byte("A")+tonumber(num)-1)
 end
 
 
@@ -475,6 +520,48 @@ function str_mt.__index.parsekv(s, t) -- parsekv string
     return penlight.luakeys.parse(s, t)
 end
 
+function str_mt.__index.splitstrip(s, sep, stri) --
+    sep = sep or ','
+    return penlight.List(s:split(sep)):map(function(x) return penlight.stringx.strip(x, stri) end)
+end
+
+
+function str_mt.__index.split2(s, sep1, sep2, stri) --
+    sep1 = sep1 or ','
+    sep2 = sep2 or '='
+    if stri == nil then stri = true end
+    stri = penlight.hasval(strip)
+    local splitfunc = string.split
+    if stri then
+        splitfunc = string.splitstrip
+    end
+    return penlight.List(splitfunc(s,sep1)):map(function(x) return splitfunc(x, sep2) end)
+end
+
+
+
+
+function str_mt.__index.hasnonum(s)
+    -- string only contains letters and symbols
+    --assert_string(1,s) -- todo
+    return string.find(s,'^[%D]+$') == 1
+end
+
+function str_mt.__index.hasnoalpha(s)
+    -- string only contains numbers and symbols
+    --assert_string(1,s) -- todo
+    return string.find(s,'^[%A]+$') == 1
+end
+
+function str_mt.__index.isvarlike(s)
+    -- string is like a variable, does not start with a number, then followd by letter, number, or underscore
+    --assert_string(1,s) -- todo
+    return string.find(s,'^[%a_][%w%d_]*$') == 1
+end
+
+
+
+
 -- -- -- -- function stuff
 
 function penlight.clone_function(fn)
@@ -506,26 +593,27 @@ end
 
 
 function penlight.seq.check_neg_index(i, len, fallback)
-i = tostring(i):delspace()
-if i == '' then return fallback end
-i = tonumber(i)
-if i == nil then
-  local _ = 1*'"Attempted to use seqstr indexing with negative number, but length of list not provided"'
-  return fallback -- fallback is the number to fall back on if i isn't provided
-end
-len = tonumber(len)
-if i < 0 then
-    if len == nil then
+    i = tostring(i):delspace()
+    if i == '' then return fallback end
+    i = tonumber(i)
+    if i == nil then
       local _ = 1*'"Attempted to use seqstr indexing with negative number, but length of list not provided"'
-      return pl.utils.raise("Attempted to use seqstr indexing with negative number, but length of list not provided")
+      return fallback -- fallback is the number to fall back on if i isn't provided
     end
-  i = len + 1 + i -- negative index
-end
-return i
+    len = tonumber(len)
+    if i < 0 then
+        if len == nil then
+          local _ = 1*'"Attempted to use seqstr indexing with negative number, but length of list not provided"'
+          return penlight.utils.raise("Attempted to use seqstr indexing with negative number, but length of list not provided")
+        end
+      i = len + 1 + i -- negative index
+    end
+    return i
 end
 
 penlight.seq.train_element_sep = ','
 penlight.seq.train_range_sep = ':'
+
 
 function penlight.seq.train(s, len)
     -- parse a range given a string indexer
@@ -538,8 +626,16 @@ function penlight.seq.train(s, len)
 
     local t = penlight.List() -- list of indexes
     local check_neg = penlight.seq.check_neg_index
-    for _, r in ipairs(s:split(penlight.seq.train_element_sep)) do
-      if r:find(penlight.seq.train_range_sep) then
+    local steps = s:split(penlight.seq.train_element_sep)
+    --penlight.wrth(steps,'abc')
+    for _, r in ipairs(steps) do
+        --penlight.wrth(r,'seq.train = '..s)
+        r = penlight.stringx.strip(r)
+      if r == '*' then -- if the string has no numbers and no :, it is a key
+          t:append(r)
+      elseif string.isvarlike(r) then -- if the string has no numbers and no :, it is a key
+        t:append(r)
+      elseif r:find(penlight.seq.train_range_sep) then
         r = r:split(penlight.seq.train_range_sep) -- if it's a range
         t:extend(penlight.List.range(check_neg(r[1], len, 1),
                                check_neg(r[2], len, len),
@@ -547,8 +643,8 @@ function penlight.seq.train(s, len)
       else
         t:append(check_neg(r, len))
       end
-    end
-    return t
+  end
+return t
 end
 
 function penlight.seq.itrain(s, len)
@@ -563,6 +659,24 @@ end
 
 
 
+function penlight.seq.tbltrain(tbl, s) -- iterate over a table using the train syntax
+    local inds = penlight.seq.train(s, #tbl) -- indexes to use
+    local star = inds:index('*')
+    if star ~= nil then
+        inds:pop(star)
+        inds:inject(penlight.tablex.kkeys(tbl), star)
+    end
+    local i = 0
+    return function ()
+        i = i + 1  -- i of indexes
+        if i <= #inds then
+          local v = tbl[inds[i]]
+          --penlight.wrth(v)
+          --if v == nil then penlight.test.asserteq(v, true) end -- todo make a generic lua error message function
+          return  inds[i], v
+      end
+    end
+end
 
 
 
@@ -598,6 +712,16 @@ end
 
 -- table stuff below
 
+
+function penlight.tablex.concatenate(t1,t2)
+    -- todo is this needed
+    for i=1,#t2 do
+        t1[#t1+1] = t2[i]
+    end
+    return t1
+end
+
+
 function penlight.tablex.strinds(t) -- convert indices that are numbers to string indices
     local t_new = {}
     for i, v in pairs(t) do -- ensure all indexes are strings
@@ -609,6 +733,7 @@ function penlight.tablex.strinds(t) -- convert indices that are numbers to strin
     end
   return t_new
 end
+
 
 
 function penlight.tablex.listcontains(t, v)
@@ -642,6 +767,20 @@ function penlight.tablex.fmt(t, fmt, strinds)
 end
 
 
+function penlight.tablex.list2comma(t)
+    t = penlight.List(t)
+    local s = ''
+    if #t == 1 then
+        s = t[1]
+    elseif #t == 2 then
+        s = t:join(' and ')
+    elseif #t >= 3 then
+        s = t:slice(1,#t-1):join(', ')..', and '..t[#t]
+    end
+    return s
+end
+
+
 function penlight.tablex.map_slice(func, T, j1, j2)
     if type(j1) == 'string' then
         return penlight.array2d.map_slice(func, {T}, ','..j1)[1]
@@ -651,6 +790,18 @@ function penlight.tablex.map_slice(func, T, j1, j2)
 end
 
 penlight.array2d.map_slice1 = penlight.tablex.map_slice
+
+
+
+function penlight.tablex.kkeys(t)
+    local keys = {}
+    for k, _ in penlight.utils.kpairs(t) do
+        keys[#keys+1] = k
+    end
+    return keys
+end
+
+
 
 
 -- todo option for multiple filters with AND logic, like the filter files??
@@ -802,11 +953,8 @@ end
 
 
 
-if not penlight.debug_available then
-    penlight.tex.pkgwarn('penlight', 'lua debug library is not available, recommend re-compiling with the --luadebug option')
-else
-     penlight.COMP = require'pl.comprehension'.new() -- for comprehensions
-
+if penlight.debug_available then
+     penlight.COMP = require'penlight.comprehension'.new() -- for comprehensions
     local _parse_range = penlight.clone_function(penlight.array2d.parse_range)
 
     function penlight.array2d.parse_range(s) -- edit parse range to do numpy string if no letter passed
@@ -817,6 +965,25 @@ else
         return _parse_range(s)
     end
 end
+
+
+
+function penlight.List:inject(l2, pos)
+    pos = pos or 1
+    if pos < 1 then
+        pos = #self + pos + 1
+    end
+    l2 = penlight.List(l2):reverse()
+    for i in l2:iter() do
+        self:insert(pos, i)
+    end
+    return self
+end
+
+
+
+
+
 
 
 
@@ -868,6 +1035,14 @@ function penlight.tex.makePDFtablekv(kv)
     return t_new
 end
 
+function penlight.tex.updatePDFtable(k, v, o) -- update pdf table
+    if o == nil then o = true end
+    k = k:strip():upfirst()
+    if penlight.hasval(o) or (__PDFmetadata__[k] == nil) then
+        __PDFmetadata__[penlight.tex.checkPDFkey(k)] = penlight.tex.makePDFvarstr(v)
+    end
+end
+
 
 penlight.tex.writePDFmetadata = function(t) -- write PDF metadata to xmpdata file
   t = t or __PDFmetadata__
@@ -908,31 +1083,11 @@ function penlight.tex.makeInTextstr(s)
     return s
 end
 
---todo decide on above or below
 
-function penlight.tex.list2comma(t)
-    local s = ''
-    if #t == 1 then
-        s = t[1]
-    elseif #t == 2 then
-        s = t:join(' and ')
-    elseif #t >= 3 then
-        s = t:slice(1,#t-1):join(', ')..', and '..t[#t]
-    end
-    return s
-end
 
-function penlight.tex.split2comma(s, d)
-    local t = penlight.List(s:split(d)):map(string.strip)
-    penlight.tex.prt(penlight.tex.list2comma(t))
-end
 
-function penlight.tex.split2items(s, d)
-    local t = penlight.List(s:split(d)):map(string.strip)
-    for n, v in ipairs(t) do
-        penlight.tex.prtn('\\item '..v)
-    end
-end
+
+
 
 
 function penlight.toggle_luaexpr(expr)
@@ -951,7 +1106,7 @@ function penlight.caseswitch(s, c, kv)
     local sw = kvtbl[c] -- the returned switch
     if sw == nil then -- if switch not found
       if s == penlight.tex.xTrue then -- if star, throw error
-        pl.tex.pkgerror('penlight', 'case: "'..c..'" not found in key-vals: "'..kv..'"')
+        penlight.tex.pkgerror('penlight', 'case: "'..c..'" not found in key-vals: "'..kv..'"')
         sw = ''
       else
         sw = kvtbl['__'] or '' -- use __ as not found case
@@ -959,125 +1114,6 @@ function penlight.caseswitch(s, c, kv)
      end
     tex.sprint(sw)
 end
-
-
-
-penlight.tbls = {}
-
-penlight.rec_tbl = ''
-penlight.rec_tbl_opts = {}
-
-
-function penlight.tbl(s)
-    return penlight.get_tbl_item(s)
-end
-
-function penlight.get_tbl_name(s)
-    if s == '' then
-        return penlight.rec_tbl
-    end
-    return s
-end
-
-function penlight.get_tbl(s)
-    s = penlight.get_tbl_name(s)
-    return penlight.tbls[s]
-end
-
-function penlight.get_tbl_index(s, undec)
-    undec = undec or false -- flag for allowing undeclared indexing
-    local tbl = ''
-    local key = ''
-    local s_raw = s
-    if s:find('%.') then
-        local tt = s:split('.')
-        tbl = tt[1]
-        key = tt[2]
-    elseif s:find('/') then
-        local tt = s:split('/')
-        tbl = tt[1]
-        if tbl == '' then tbl = penlight.rec_tbl end
-        key = tonumber(tonumber(tt[2]))
-        if key < 0 then key = #penlight.tbls[tbl]+1+key end
-    else
-        tbl = penlight.rec_tbl
-        key = tonumber(s) or s
-        if type(key) == 'number' and key < 0 then key = #penlight.tbls[tbl]+1+key end
-    end
-    if tbl == '' then tbl = penlight.rec_tbl end
-
-    if (penlight.tbls[tbl] == nil) or ((not undec) and (penlight.tbls[tbl][key] == nil)) then
-        penlight.tex.pkgerror('penlightplus',  'Invalid tbl index attempt using: "'..s_raw..'". We tried to use tbl: "' ..tbl..'" and key: "'..key..'"')
-    end
-    return tbl, key
-end
-
-
-function penlight.get_tbl_item(s, p) -- get item with string, p means print value
-  p = p or false
-  local tbl, key = penlight.get_tbl_index(s)
-  local itm = penlight.tbls[tbl][key]
-  if p then
-    tex.sprint(tostring(itm))
-  end
-  return itm
-end
-
-
-function penlight.set_tbl_item(s, v)
-  tbl, key = penlight.get_tbl_index(s)
-  penlight.tbls[tbl][key] = v
-end
-
-function penlight.check_recent_tbl_undefault()
-    local undefaults = {}
-    if penlight.rec_tbl_opts ~= nil then
-        local defaults = penlight.tablex.union(
-                penlight.rec_tbl_opts.defs or {},
-                penlight.rec_tbl_opts.defaults or {}
-        )
-        for k, v in pairs(penlight.tbls[penlight.rec_tbl]) do
-            if defaults[k] == nil then
-                undefaults[#undefaults+1] = k
-            end
-        end
-        if penlight.hasval(undefaults) then
-            penlight.tex.pkgerror('penlightplus',
-                    'Invalid keys passed to tbl keyval:  ' .. (', '):join(undefaults) ..
-                    ' ;   choices are:  ' .. (', '):join(penlight.tablex.keys(defaults))
-            )
-        end
-    end
-end
-
-function penlight.def_tbl(ind, def, g)
-  local _tbl, _key = penlight.get_tbl_index(ind)
-  if def == '' then def = 'dtbl'.._tbl.._key end
-  token.set_macro(def, tostring(penlight.tbls[_tbl][_key]), g)
-end
-
-function penlight.def_tbl_all(ind, def)
-    local _tbl = penlight.get_tbl_name(ind)
-    if def == '' then def = 'dtbl'.._tbl end
-    for k, v in pairs(penlight.tbls[_tbl]) do
-        token.set_macro(def..k, tostring(v))
-  end
-end
-
--- TODO TODO TODO get error working xy def, and referene which table for key-vals
-penlight.tbl_xysep = '%s+' -- spaces separate x-y coordinates
-function penlight.def_tbl_coords(ind, def)
-    local tbl, key = penlight.get_tbl_index(ind)
-    local str = penlight.tbls[tbl][key]
-    if def == '' then def = 'dtbl'..tbl..key end
-    local x, y = str:strip():splitv(penlight.tbl_xysep)
-     if (not penlight.hasval(x)) or (not penlight.hasval(y))  then
-       penlight.tex.pkgerror('penlightplus', 'def_tbl_coords function could not parse coordiantes given as "'..str..'" ensure two numbers separated by space are given!', '', true)
-     end
-    token.set_macro(def..'x', tostring(x))
-    token.set_macro(def..'y', tostring(y))
-end
-
 
 
 
@@ -1136,3 +1172,69 @@ if penlight.hasval(__PL_GLOBALS__) then
 end
 
 
+
+
+
+
+
+
+
+-- graveyard
+
+--todo decide on above or below
+
+
+
+penlight.tex.list2comma = penlight.tablex.list2comma
+
+function penlight.tex.split2comma(s, d)
+    local t = penlight.List(s:split(d)):map(string.strip)
+    penlight.tex.prt(penlight.tex.list2comma(t))
+end
+
+function penlight.tex.split2items(s, d)
+    local t = penlight.List(s:split(d)):map(string.strip)
+    for n, v in ipairs(t) do
+        penlight.tex.prtn('\\item '..v)
+    end
+end
+
+
+--
+--\subsection*{Splitting strings}
+--Splitting text (or a cmd) into oxford comma format via:
+--\cmd{\splittocomma[expansion level]{text}{text to split on}}:
+--
+--\begin{LTXexample}[width=0.3\linewidth]
+-- \splittocomma{  j doe  }{\and}-\\
+--\splittocomma{  j doe \and s else  }{\and}-\\
+--\splittocomma{  j doe \and s else \and a per }{\and}-\\
+--\splittocomma{  j doe \and s else \and a per \and f guy}{\and}-
+--
+--\def\authors{j doe \and s else \and a per \and f guy}
+--\splittocomma[o]{\authors}{\and}
+--\end{LTXexample}
+--
+--The expansion level is up to two characters, \cmd{n|o|t|f}, to control the expansion of each argument.
+--
+--You can do a similar string split but to \cmd{\item} instead of commas with \cmd{\splittoitems}
+--\begin{LTXexample}
+--\begin{itemize}
+--  \splittoitems{kale\and john}{\and}
+--  \splittoitems{kale -john -someone else}{-}
+--  \splittoitems{1,2,3,4}{,}
+--\end{itemize}
+--\end{LTXexample}
+
+
+
+--
+--\NewDocumentCommand{\splittocomma}{ O{nn} m m }{%
+--  \MakeluastringCommands[nn]{#1}%
+--  \luadirect{penlight.tex.split2comma(\plluastringA{#2},\plluastringB{#3})}%
+--}
+--
+--\NewDocumentCommand{\splittoitems}{ O{NN} m m }{%
+--  \MakeluastringCommands[nn]{#1}%
+--  \luadirect{penlight.tex.split2items(\plluastringA{#2},\plluastringB{#3})}%
+--}
