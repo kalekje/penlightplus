@@ -196,7 +196,7 @@ end
 
 
 if not penlight.debug_available then
-    penlight.tex.pkgwarn('penlight', 'lua debug library is not available, recommend re-compiling with the --luadebug option')
+    penlight.tex.pkgwarn('penlightplus', 'lua debug library is not available, recommend re-compiling with the --luadebug option')
 end
 
 
@@ -431,6 +431,7 @@ function str_mt.__index.gnum(s)
 end
 
 function str_mt.__index.gextract(s, pat) --extract a pattern from string, returns both
+    -- todo a variant where you can specify the number would be helpful
     local s_extr = ''
     local s_rem = s
     for e in s:gmatch(pat) do
@@ -500,6 +501,17 @@ end
 function str_mt.__index.trimfl(str)
     return str:sub(2,-2)
 end
+
+function str_mt.__index.istexdim(str)
+    for _, u in pairs{'pt', 'mm', 'cm', 'in', 'ex', 'em', 'mu', 'sp'} do
+        if penlight.hasval(str:delspace():find('^%-?%d*%.?%d+'..u..'$')) then
+            return true
+        end
+    end
+    return false
+end
+
+
 
 function str_mt.__index.subpar(s, r)
     r = r or ' '
@@ -816,6 +828,21 @@ function penlight.tablex.filterstr(t, exp, case)
         return penlight.tablex.filter(t, bind(string.containsanycase,_1,exp))
     end
 end
+
+
+function penlight.tablex.train(t,seq,reind)
+    local t_new = {}
+    local num = 0
+    for k, v in penlight.seq.tbltrain(t, seq) do
+        if reind and type(v) == 'number' then
+            num = num + 1
+            k = num
+        end
+        t_new[k] = v
+    end
+    return t_new
+end
+
 
 --todo add doc
 function penlight.utils.filterfiles(...)

@@ -155,6 +155,7 @@ Some functionality is added to penlight and Lua.
 \llcmd{string.}\cmd{containsanycase(s,t)} case-insensitive version\\
 \llcmd{string.}\cmd{delspace(s)} clear spaces from string\\
 \llcmd{string.}\cmd{subpar(s, c)} replaces \cmd{\\par} with a character of your choice default is space\\
+\llcmd{string.}\cmd{istexdim(s)} checks if a string is a valid tex dimension (eg. mm, pt, sp)\\
 \llcmd{string.}\cmd{fmt(s, t, fmt)} format a string like \cmd{format_operator}, but with
 a few improvements. \cmd{t} can be an array (reference items like \cmd{\$1} in the string),
 and \cmd{fmt} can be a table of formats (keys correspond to those in \cmd{t}), or a string that
@@ -163,12 +164,12 @@ is processed by luakeys.\\
 \llcmd{string.}\cmd{hasnoalpha(s)}  string has no letters\\
 \llcmd{string.}\cmd{hasnonum(s)}  string has no numbers\\
 \llcmd{string.}\cmd{isvarlike(s)}  string is 'variable-like', starts with a letter or underscore and then is alphanumeric or has underscores after \\
-\begin{luacode*}
-  pl.wrth(('_'):isvarlike(), 'llll')
-  pl.wrth(('1_1k'):isvarlike(), ',,')
-  pl.wrth(('kale_1'):isvarlike(), '')
-  pl.wrth(('kale_1'):isvarlike(), '')
-\end{luacode*}
+%\begin{luacode*}
+%  pl.wrth(('_'):isvarlike(), 'llll')
+%  pl.wrth(('1_1k'):isvarlike(), ',,')
+%  pl.wrth(('kale_1'):isvarlike(), '')
+%  pl.wrth(('kale_1'):isvarlike(), '')
+%\end{luacode*}
 
 \subsection*{tablex additions}
 \llcmd{tablex.}\cmd{fmt(t, f)} format a table with table or key-value string f\\
@@ -178,6 +179,12 @@ is processed by luakeys.\\
 \llcmd{tablex.}\cmd{mapslice(f,t,i1,i2)} map a function to elements between i1 and i2\\
 \llcmd{tablex.}\cmd{listcontains(t,v)} checks if a value is in a array-style list \\
 \llcmd{tablex.}\cmd{kkeys(t)} returns keys that are non-numeric (like kpairs)  \\
+\llcmd{tablex.}\cmd{train(t,seq,reind)} return a sable based on \cmd{pl.seq.tbltrain}, \cmd{reind} will make numerical keys ordered from 1  \\
+
+%\begin{luacode*}
+%  local t = {1,2,3,a='A',b='B'}
+%  penlight.wrth(penlight.tablex.train(t,'2:3,*',true),'kew')
+%\end{luacode*}
 
 \subsection*{List additions}
 \llcmd{List:}\cmd{inject(l2, pos)} injects a list (l2) into a list at position. Set pos=0 to inject at end.
