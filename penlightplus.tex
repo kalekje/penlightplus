@@ -50,7 +50,7 @@
 \addtokomafont{date}{\raggedright}
 \author{Kale Ewasiuk (\url{kalekje@gmail.com})}
 \usepackage[yyyymmdd]{datetime}\renewcommand{\dateseparator}{--}
-\date{\today}
+\date{\ \today}
 
 
 \RequirePackage[pl,globals]{penlightplus}
@@ -66,10 +66,14 @@
 
 \section*{Package Options and Set-Up}
 
-This package first loads the LaTeX \cmd{penlight[import]} package
-(\url{https://ctan.org/pkg/penlight?lang=en}).
-Documentation for the Lua package can be found here: \url{https://lunarmodules.github.io/Penlight/index.html}.\\
+This package first loads the LaTeX \cmd{penlight[import]} package:\\
+\url{https://ctan.org/pkg/penlight?lang=en}.\\
+Documentation for the Lua penlight package can be found here:\\ \url{https://lunarmodules.github.io/Penlight/index.html}.\\
 The \texttt{pl} option may be passed to this package to create an alias for \cmd{penlight}.\\
+A portion of this package to facilitate the creation, modification, and usage of the Lua table data structure
+through a LaTeX interface has been moved to a separate package called \cmd{luatbls}:\\
+\url{https://ctan.org/pkg/luatbls}.
+
 
 The following global Lua variables are defined:
 
@@ -84,8 +88,8 @@ Since this package uses the penlight \cmd{import} option,
 all \cmd{stringx} functions are injected into the \cmd{string} meta-table and you can use them like so: \cmd{'first name':upfirst()}.
 But if the package option \cmd{globals} is used, many additional globals are set for easier scripting.
 \cmd{pl.hasval},  \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals.
-\cmd{pl.tablex} is aliased as \cmd{pl.tbx and tbx} (which also includes all native Lua table functions), and
-\cmd{pl.array2d} is aliased as \cmd{pl.a2d and a2d}.
+\cmd{pl.tablex} is aliased as \cmd{tbx} (which also includes all native Lua table functions), and
+\cmd{pl.array2d} is aliased as \cmd{a2d}.
 
 %If you want global \cmd{pl.tex} functions and variables, call \cmd{pl.make_tex_global()}.\\
 
@@ -118,13 +122,14 @@ Some functionality is added to penlight and Lua.
 \llcmd{pl.hasval(x)} Python-like boolean testing\\
 \llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
 
-\llcmd{_Gdot(s)} Return a global (may contain dots) from string
+\llcmd{_Gdot(s)} return a global (may contain dots) from string
 
 \cmd{clone_function(f)} returns a cloned function\\
 \cmd{operator.strgt(a,b)} compares strings a greater than b  (useful for sorting)\\
 \cmd{operator.strlt(a,b)} compares strings a less than b (useful for sorting)\\
 
-\llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
+\llcmd{math.mod(n,d)} math modulus\\
+\cmd{math.mod2(n)} mod with base 2\\
 
 \llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
 
@@ -148,7 +153,9 @@ Some functionality is added to penlight and Lua.
 \llcmd{string.}\cmd{appif(s, append, bool, alternate)}\\
 \llcmd{string.}\cmd{gfirst(s, t)}return first matched patter from an array of patterns t\\
 %\llcmd{string.}\cmd{gnum(s)} extract a number from a string\\
-\llcmd{string.}\cmd{gextract(s)} extract a pattern from a string (returns capture and new string with capture removed)\\
+\llcmd{string.}\cmd{gextract(s,pat)} extract a pattern from a string (returns capture and new string with capture removed)\\
+\llcmd{string.}\cmd{gextrct(s,pat,num,join)} extract a pattern from a string (returns capture and new string with capture removed),
+can specify a number of extractions. if join is specified, captures will be joined, otherwise a list is returned\\
 \llcmd{string.}\cmd{totable(s)} string a table of characters\\
 \llcmd{string.}\cmd{tolist(s)} string a table of characters\\
 \llcmd{string.}\cmd{containsany(s,t)} checks if any of the array of strings \cmd{t} are in \cmd{s} using \cmd{string.find}\\
@@ -165,10 +172,12 @@ is processed by luakeys.\\
 \llcmd{string.}\cmd{hasnonum(s)}  string has no numbers\\
 \llcmd{string.}\cmd{isvarlike(s)}  string is 'variable-like', starts with a letter or underscore and then is alphanumeric or has underscores after \\
 %\begin{luacode*}
-%  pl.wrth(('_'):isvarlike(), 'llll')
-%  pl.wrth(('1_1k'):isvarlike(), ',,')
-%  pl.wrth(('kale_1'):isvarlike(), '')
-%  pl.wrth(('kale_1'):isvarlike(), '')
+%  local s1, s2 = ('12,13'):gxtrct('%d',nil)
+%  pl.wrth({s1,s2}, 'err rat')
+%--%  pl.wrth(('_'):isvarlike(), 'llll')
+%--%  pl.wrth(('1_1k'):isvarlike(), ',,')
+%--%  pl.wrth(('kale_1'):isvarlike(), '')
+%--%  pl.wrth(('kale_1'):isvarlike(), '')
 %\end{luacode*}
 
 \subsection*{tablex additions}
@@ -342,9 +351,6 @@ Use \_\_ as a placeholder for a case that isn't matched. The case is fully expan
 %\caseswitch*{\mycase}{dog=DOG, cat=CAT, __=INVALID}
 
 
-\subsection*{Create, modify, and use Lua tables from within LaTeX}
-This portion of the package has been moved to a another package called
-\cmd{luatbls} \\(\url{https://ctan.org/pkg/luatbls})
 
 
 

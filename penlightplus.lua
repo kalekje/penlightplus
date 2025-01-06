@@ -431,7 +431,6 @@ function str_mt.__index.gnum(s)
 end
 
 function str_mt.__index.gextract(s, pat) --extract a pattern from string, returns both
-    -- todo a variant where you can specify the number would be helpful
     local s_extr = ''
     local s_rem = s
     for e in s:gmatch(pat) do
@@ -440,6 +439,25 @@ function str_mt.__index.gextract(s, pat) --extract a pattern from string, return
     end
     return s_extr, s_rem
 end
+
+function str_mt.__index.gxtrct(s, pat, num, join) --extract a pattern from string, returns both
+    -- todo a variant where you can specify the number of extractions, and either list of concatenate them would be helpful
+    local l_extr = penlight.List{}
+    local s_rem = s
+    local n = 1
+    num = num or 99999
+    for e in s:gmatch(pat) do
+        l_extr = l_extr:append(e)
+        s_rem = s_rem:gsub(e,'',1)
+        if n == num then break end
+        n = n +1
+    end
+    if join then
+        l_extr = l_extr:join(join)
+    end
+    return l_extr, s_rem
+end
+
 
 function str_mt.__index.gfirst(s, t) -- get the first pattern found from a table of pattern
     for _, pat in pairs(t) do
@@ -844,6 +862,7 @@ function penlight.tablex.train(t,seq,reind)
 end
 
 
+
 --todo add doc
 function penlight.utils.filterfiles(...)
     -- f1 is a series of filtering patterns, or condition
@@ -981,7 +1000,7 @@ end
 
 
 if penlight.debug_available then
-     penlight.COMP = require'penlight.comprehension'.new() -- for comprehensions
+     penlight.COMP = penlight.comprehension.new() -- for comprehensions
     local _parse_range = penlight.clone_function(penlight.array2d.parse_range)
 
     function penlight.array2d.parse_range(s) -- edit parse range to do numpy string if no letter passed
