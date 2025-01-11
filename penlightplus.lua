@@ -712,6 +712,21 @@ end
 
 
 
+function penlight.seq.prod(t1, t2)
+    -- cartesian prduct of two tables (uses ipairs)
+    local t_new = {}
+    for _, v1 in ipairs(t1) do
+        for _, v2 in ipairs(t2) do
+            t_new[#t_new + 1] = {v1, v2}
+        end
+    end
+    local i = 0
+  return function ()
+      i = i + 1
+      if i <= #t_new then return t_new[i][1], t_new[i][2] end
+  end
+end
+
 
 
 
@@ -861,6 +876,40 @@ function penlight.tablex.train(t,seq,reind)
     return t_new
 end
 
+
+
+function penlight.trysplitcomma(s)
+    strip = strip or false
+    if type(s) == 'number' then s = tostring(s) end
+    if type(s) == 'string' then
+        return s:splitstrip(',')
+    end
+    return s
+end
+
+
+function penlight.findfiles(kv)
+    if type(kv) == 'string' then kv = penlight.luakeys.parse(kv) end
+    kv = penlight.tablex.update({dir={'.'}, fn={'*'}, ext={''}, sub=false}, kv)
+    kv.dir = penlight.trysplitcomma(kv.dir)
+    kv.fn = penlight.trysplitcomma(kv.fn)
+    kv.ext = penlight.trysplitcomma(kv.ext)
+    --local files_all = penlight.getallfilesdirs(kv.dir, kv.sub)
+    local getfiles = penlight.dir.getfiles
+    if penlight.hasval(kv.sub) then
+        getfiles = function(dir, fn) return penlight.dir.getallfiles(dir, '*'..fn)  end -- need * in front so folder does not affect result
+    end
+    local files = penlight.List{}
+    for fn, ext in penlight.seq.prod(kv.fn, kv.ext) do
+        for _, dir in ipairs(kv.dir) do
+            penlight.wrth(dir..fn..ext)
+            files:extend(getfiles(dir, fn..ext))
+        end
+    end
+    files = pl.List(penlight.tablex.keys(pl.Set(files))) -- clear duplicates
+    files = files:map(function(s) return s:gsub('\\','/')  end) -- change slash for latex
+    return files
+end
 
 
 --todo add doc

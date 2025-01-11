@@ -133,6 +133,10 @@ Some functionality is added to penlight and Lua.
 
 \llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
 
+\llcmd{pl.}{trysplitcomma(s)} will try to split a string on comma (and strip), but if is a table, leave it
+
+\llcmd{pl.}\cmd{findfiles{}} or \cmd{findfiles'kv'} is an updated version of \cmd{filterfiles}. Pass a table or a luakeys
+kv string as the only argument. Valid table options are: \cmd{fn, dir, ext, sub}.
 
 \llcmd{pl.}\cmd{char(n)} return letter corresponding to 1=a, 2=b, etc.\\
 \llcmd{pl.}\cmd{Char(n)} return letter corresponding to 1=A, 2=B, etc.\\
@@ -202,9 +206,25 @@ is processed by luakeys.\\
   pl.wrth(l:inject({'a','b','c'},0), 'INJECTED')
 \end{luacode*}
 
+\begin{luacode*}
+  f = pl.findfiles'fn=pen*, ext=".lua, .sty, .pdf", sub=false'
+  pl.wrth(f, 'FILES')
+  --penlight.wrth(penlight.dir.getallfiles('.', '*pen*'), 'ALLFILES')
+  pl.wrth(pl.file.access_time('penlightplus'), 'ACCESS TIME')
+  pl.wrth(pl.file.access_time('penlightpluxs'), 'ACCESS TIME')
+  if xdasdsa == nil then
+    penlight.utils.on_error('error')
+    --texio.write_nl('LaTeX Warning: FK )')
+    -- return penlight.utils.raise('Invalid path was attempted')
+    -- penlight.utils.on_error('stop')
+    -- return penlight.utils.raise('...')
+  end
+\end{luacode*}
+
 
 \subsubsection*{seq additions}
 A syntax to produce sequences or a 'train' of numbers is provided. This may be useful for including pages from a pdf, or selecting rows of a table with a concise syntax.\\
+\llcmd{seq.}\cmd{prod(t1, t2)} iterate over the cartesian product of t1 and t2\\
 \llcmd{seq.}\cmd{train(trn, len)} produces a pl.List according to the arguments\\
 \llcmd{seq.}\cmd{itrain(trn, len)} produces an iterator according to the arguments.\\
 \llcmd{seq.}\cmd{tbltrain(tbl, trn)} produces an iterator over a table
