@@ -7,7 +7,7 @@
 --% in the Software without restriction, including without limitation the rights
 --% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 --% copies of the Software, and to permit persons to whom the Software is
---% furnished to do so, subjdeect to the following conditions:
+--% furnished to do so, subjected to the following conditions:
 --%
 --% The above copyright notice and this permission notice shall be included in
 --% all copies or substantial portions of the Software.
@@ -902,7 +902,6 @@ function penlight.findfiles(kv)
     local files = penlight.List{}
     for fn, ext in penlight.seq.prod(kv.fn, kv.ext) do
         for _, dir in ipairs(kv.dir) do
-            penlight.wrth(dir..fn..ext)
             files:extend(getfiles(dir, fn..ext))
         end
     end
@@ -911,6 +910,7 @@ function penlight.findfiles(kv)
     return files
 end
 
+penlight.dir.findfiles = penlight.findfiles
 
 --todo add doc
 function penlight.utils.filterfiles(...)
