@@ -1145,7 +1145,7 @@ penlight.tex.writePDFmetadata = function(t) -- write PDF metadata to xmpdata fil
   for k, v in pairs(t) do
     str = str..'\\'..k..'{'..v..'}'..'\n'
   end
-  penlight.utils.writefile(tex.jobname..'.xmpdata', str)
+  penlight.utils.writefile(tex.jobname:gsub('"','')..'.xmpdata', str)
 end
 
 
