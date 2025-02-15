@@ -24,6 +24,7 @@
 
 
 \documentclass[11pt,parskip=half]{scrartcl}
+\usepackage[default]{lato}
 \setlength{\parindent}{0ex}
 \newcommand{\llcmd}[1]{\leavevmode\llap{\texttt{\detokenize{#1}}}}
 \newcommand{\cmd}[1]{\texttt{\detokenize{#1}}}
@@ -133,7 +134,7 @@ Some functionality is added to penlight and Lua.
 
 \llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
 
-\llcmd{pl.}{trysplitcomma(s)} will try to split a string on comma (and strip), but if is a table, leave it
+\llcmd{pl.}\cmd{trysplitcomma(s)} will try to split a string on comma (and strip), but if is a table, leave it
 
 \llcmd{pl.}\cmd{findfiles{}} or \cmd{findfiles'kv'} is an updated version of \cmd{filterfiles}. Pass a table or a luakeys
 kv string as the only argument. Valid table options are: \cmd{fn, dir, ext, sub}.
@@ -379,7 +380,9 @@ Use \_\_ as a placeholder for a case that isn't matched. The case is fully expan
 
 
 \subsection*{PDF meta data (for pdfx package)}
-\cmd{\writePDFmetadatakv*[x]{kv}} Take a key-value string (eg. \cmd{title=whatever, author=me}) and then writes to the \cmd{jobname.xmpdata} file, which is used by pdfx. \cmd{*} will first clear \cmd{__PDFmetadata__} which contains the metadata. The un-starred version updates that table.
+\cmd{\writePDFmetadatakv*[x]{kv}} Take a key-value string (eg. \cmd{title=whatever, author=me}) and then writes to the \cmd{jobname.xmpdata} file, which is used by pdfx.
+\cmd{*} will first clear \cmd{__PDFmetadata__} which is the table variable that stores the metadata.
+The un-starred version updates that table.
 You can control the expansion of the key-val argument with \cmd{[x]}, which is fully expanded by default.
 Command sequences are ultimately stripped from the values, except for \cmd{\and} is converted to \cmd{\sep} for pdfx usage (\url{https://texdoc.org/serve/pdfx/0}).
 \\

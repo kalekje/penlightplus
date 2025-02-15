@@ -44,10 +44,10 @@
 
 \NewDocumentCommand{\writePDFmetadatakv}{ s O{f} m }{%
 \MakeluastringCommands[f]{#2}%
-\IfBooleanTF{#1}{% if *, overwrite everything
+\IfBooleanTF{#1}{% if *, delete existing data
   \luadirect{
     __PDFmetadata__ = penlight.tex.makePDFtablekv(\plluastringA{#3})
-  }}{
+  }}{ % if no star, update
     \luadirect{
     __PDFmetadata__ = __PDFmetadata__ or {}
     penlight.tablex.update(__PDFmetadata__, penlight.tex.makePDFtablekv(\plluastringA{#3}))
@@ -73,8 +73,6 @@
 %\gdef\luastringE#1{\begin{luastringeenv#1\endluastringeenv}
 
 
-
-
 % allow control over expansion of arguments to a latex function
 \NewDocumentCommand{\MakeluastringCommands}{O{} m }{% #1 the desired commands #2 defaults
   \luadirect{penlight.tex.aliasluastring(\luastring{#2},\luastring{#1})}%
@@ -85,25 +83,17 @@
 
 
 
-
-
 %%%%
 
 \newtoggle{luaexpr}\togglefalse{luaexpr}
 
-
-
-\NewDocumentCommand{\ifluax}{m m O{}}{% if lua expression is true do {m} if not [o]
-  \luadirect{penlight.toggle_luaexpr(#1)}%
+\NewDocumentCommand{\ifluax}{m +m +O{}}{% if lua expression is true do {m} if not [o]
+  \luadirect{penlight.toggle_luaexpr(\expanded{#1})}%
   \iftoggle{luaexpr}{#2}{#3}%
   \togglefalse{luaexpr}% safety set to false
 }
 
-\NewDocumentCommand{\ifluaxv}{m m O{}}{\ifluax{penlight.hasval(#1)}{#2}[#3]}% if lua expression is truthy do {m} else [o]
-
-
-
-
+\NewDocumentCommand{\ifluaxv}{m +m +O{}}{\ifluax{penlight.hasval(#1)}{#2}[#3]}% if lua expression is truthy do {m} else [o]
 
 
 \NewDocumentCommand{\caseswitch}{s m +m}{\ignorespaces\luadirect{penlight.caseswitch(\luastring{#1},\luastring{#2},\luastringN{#3})}\unskip}
